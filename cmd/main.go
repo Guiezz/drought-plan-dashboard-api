@@ -3,63 +3,42 @@ package main
 import (
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/controller"
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/internal/funceme"
 	"github.com/guiezz/dashboard-api/repository"
+	"github.com/guiezz/dashboard-api/router"
 	"github.com/guiezz/dashboard-api/usecase"
 )
 
 func main() {
-	// 1. Conexão via GORM
 	dbConnection, err := db.ConnectDB()
 	if err != nil {
 		log.Fatalf("Erro ao conectar no banco: %v", err)
 	}
 
-	// 2. Inicialização das Camadas
+	// 1. Repositórios
 	reservatorioRepo := repository.NewReservatorioRepository(dbConnection)
+	planoAcaoRepo := repository.NewPlanoAcaoRepository(dbConnection)
+	balancoRepo := repository.NewBalancoHidricoRepository(dbConnection) // <--- NOVO
 
+	// 2. Serviços Internos
 	secaCalc := calculator.NewSecaCalculator()
 	funcemeSvc := funceme.NewFuncemeService()
 
-	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, secaCalc, funcemeSvc)
-	// Controller
+	// 3. UseCases
+	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, planoAcaoRepo, secaCalc, funcemeSvc)
+	planoAcaoUseCase := usecase.NewPlanoAcaoUseCase(planoAcaoRepo)
+	balancoUseCase := usecase.NewBalancoHidricoUseCase(balancoRepo) // <--- NOVO
+
+	// 4. Controllers
 	reservatorioController := controller.NewReservatorioController(reservatorioUseCase)
+	planoAcaoController := controller.NewPlanoAcaoController(planoAcaoUseCase)
+	balancoController := controller.NewBalancoHidricoController(balancoUseCase) // <--- NOVO
 
-	server := gin.Default()
-
-	server.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{"message": "pong!"})
-	})
-
-	server.Static("/static", "./static")
-
-	api := server.Group("/api")
-	{
-		api.GET("/reservatorios", reservatorioController.GetReservatorios)
-
-		res := api.Group("/reservatorios/:reservatorioId")
-		{
-			res.GET("/dashboard/summary", reservatorioController.GetDashboardSummary)
-			res.GET("/identification", reservatorioController.GetIdentification)
-			res.GET("/history", reservatorioController.GetHistory)
-
-			res.GET("/ongoing-actions", reservatorioController.GetOngoingActions)
-			res.GET("/completed-actions", reservatorioController.GetCompletedActions)
-			res.GET("/action-plans", reservatorioController.GetActionPlans)
-			res.GET("/action-plans/filters", reservatorioController.GetActionPlanFilters)
-			res.GET("/usos-agua", reservatorioController.GetUsosAgua)
-			res.GET("/responsaveis", reservatorioController.GetResponsaveis)
-
-			res.GET("/chart/volume-data", reservatorioController.GetChartVolumeData)
-			res.GET("/water-balance/static-charts", reservatorioController.GetWaterBalanceStaticCharts)
-
-			res.POST("/update-funceme-data", reservatorioController.UpdateFuncemeData)
-		}
-	}
+	// 5. Router
+	server := router.SetupRouter(reservatorioController, planoAcaoController, balancoController)
 
 	server.Run(":8000")
 }

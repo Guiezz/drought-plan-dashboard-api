@@ -51,49 +51,6 @@ func (r *ReservatorioRepository) GetHistoricoMonitoramento(reservatorioID int, l
 	return historico, result.Error
 }
 
-func (r *ReservatorioRepository) GetPlanosAcao(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error) {
-	var planos []model.PlanoAcao
-	query := r.db.Where("reservatorio_id = ?", reservatorioID)
-
-	if situacao != "" {
-		query = query.Where("situacao = ?", situacao)
-	}
-	if estado != "" {
-		query = query.Where("estado_seca = ?", estado)
-	}
-	if impacto != "" {
-		query = query.Where("tipos_impactos = ?", impacto)
-	}
-	if problema != "" {
-		query = query.Where("problemas = ?", problema)
-	}
-	if acao != "" {
-		query = query.Where("acoes = ?", acao)
-	}
-
-	result := query.Find(&planos)
-	return planos, result.Error
-}
-
-func (r *ReservatorioRepository) GetFiltrosPlanoAcao(reservatorioID int) (*model.FiltrosPlanoAcao, error) {
-	var estados []string
-	var impactos []string
-	var problemas []string
-	var acoes []string
-
-	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("estado_seca", &estados)
-	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("tipos_impactos", &impactos)
-	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("problemas", &problemas)
-	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("acoes", &acoes)
-
-	return &model.FiltrosPlanoAcao{
-		Estados:   estados,
-		Impactos:  impactos,
-		Problemas: problemas,
-		Acoes:     acoes,
-	}, nil
-}
-
 func (r *ReservatorioRepository) GetUsosAgua(reservatorioID int) ([]model.UsoAgua, error) {
 	var usos []model.UsoAgua
 	result := r.db.Where("reservatorio_id = ?", reservatorioID).Find(&usos)
@@ -106,24 +63,6 @@ func (r *ReservatorioRepository) GetResponsaveis(reservatorioID int) ([]model.Re
 		Order("grupo, organizacao, nome").
 		Find(&responsaveis)
 	return responsaveis, result.Error
-}
-
-func (r *ReservatorioRepository) GetBalancoMensal(reservatorioID int) ([]model.BalancoMensal, error) {
-	var dados []model.BalancoMensal
-	result := r.db.Where("reservatorio_id = ?", reservatorioID).Find(&dados)
-	return dados, result.Error
-}
-
-func (r *ReservatorioRepository) GetComposicaoDemanda(reservatorioID int) ([]model.ComposicaoDemanda, error) {
-	var dados []model.ComposicaoDemanda
-	result := r.db.Where("reservatorio_id = ?", reservatorioID).Find(&dados)
-	return dados, result.Error
-}
-
-func (r *ReservatorioRepository) GetOfertaDemanda(reservatorioID int) ([]model.OfertaDemanda, error) {
-	var dados []model.OfertaDemanda
-	result := r.db.Where("reservatorio_id = ?", reservatorioID).Find(&dados)
-	return dados, result.Error
 }
 
 func (r *ReservatorioRepository) GetReservatorioByID(id int) (*model.Reservatorio, error) {

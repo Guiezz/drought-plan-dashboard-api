@@ -17,15 +17,8 @@ type ReservatorioRepositoryInterface interface {
 	GetMetas(reservatorioID int) ([]model.VolumeMeta, error)
 	GetHistoricoMonitoramento(reservatorioID int, limit int) ([]model.Monitoramento, error)
 
-	// --- NOVOS MÉTODOS ---
-	GetPlanosAcao(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error)
-	GetFiltrosPlanoAcao(reservatorioID int) (*model.FiltrosPlanoAcao, error)
 	GetUsosAgua(reservatorioID int) ([]model.UsoAgua, error)
 	GetResponsaveis(reservatorioID int) ([]model.Responsavel, error)
-
-	GetBalancoMensal(reservatorioID int) ([]model.BalancoMensal, error)
-	GetComposicaoDemanda(reservatorioID int) ([]model.ComposicaoDemanda, error)
-	GetOfertaDemanda(reservatorioID int) ([]model.OfertaDemanda, error)
 
 	GetDatasMonitoramento(reservatorioID int) (map[string]bool, error)
 	SalvarMonitoramentos(registros []model.Monitoramento) error
@@ -33,13 +26,15 @@ type ReservatorioRepositoryInterface interface {
 
 type ReservatorioUseCase struct {
 	repo       ReservatorioRepositoryInterface
+	planoRepo  PlanoAcaoRepositoryInterface // <--- 2. INJEÇÃO DA NOVA DEPENDÊNCIA
 	calc       calculator.SecaCalculator
 	funcemeSvc funceme.Service
 }
 
-func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, calc calculator.SecaCalculator, funcemeSvc funceme.Service) *ReservatorioUseCase {
+func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, planoRepo PlanoAcaoRepositoryInterface, calc calculator.SecaCalculator, funcemeSvc funceme.Service) *ReservatorioUseCase {
 	return &ReservatorioUseCase{
 		repo:       repo,
+		planoRepo:  planoRepo,
 		calc:       calc,
 		funcemeSvc: funcemeSvc,
 	}
@@ -50,7 +45,6 @@ func (uc *ReservatorioUseCase) ListarTodos() ([]model.Reservatorio, error) {
 }
 
 func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.DashboardResumo, error) {
-	// 1. Busca dados do monitoramento e metas
 	ultimoMonit, err := uc.repo.GetUltimoMonitoramento(reservatorioID)
 	if err != nil {
 		return nil, err
@@ -61,20 +55,16 @@ func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.
 		return nil, err
 	}
 
-	// 2. Cálculo do Estado de Seca (USANDO A NOVA CALCULADORA)
 	estadoAtual := uc.calc.CalcularEstado(ultimoMonit, metas)
 
-	// 3. Cálculo de Dias desde a última mudança
 	diasDesdeMudanca := 0
 	historico, err := uc.repo.GetHistoricoMonitoramento(reservatorioID, 365)
 	if err == nil && len(historico) > 1 {
-		// (USANDO A NOVA CALCULADORA)
 		diasDesdeMudanca = uc.calc.CalcularDiasDesdeMudanca(estadoAtual, historico, metas)
 	}
 
-	// ... (Resto do método continua igual: busca planos de ação e monta resumo) ...
-
-	planos, err := uc.repo.GetPlanosAcao(reservatorioID, "", estadoAtual, "", "", "")
+	// 3. AGORA USA O planoRepo ESPECÍFICO PARA BUSCAR AS AÇÕES
+	planos, err := uc.planoRepo.Listar(reservatorioID, "", estadoAtual, "", "", "")
 
 	var medidasRecomendadas []model.PlanoAcaoResumo
 	if err == nil {
@@ -99,14 +89,6 @@ func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.
 	}
 
 	return resumo, nil
-}
-
-func (uc *ReservatorioUseCase) ListarPlanosAcao(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error) {
-	return uc.repo.GetPlanosAcao(reservatorioID, situacao, estado, impacto, problema, acao)
-}
-
-func (uc *ReservatorioUseCase) ObterFiltrosPlanoAcao(reservatorioID int) (*model.FiltrosPlanoAcao, error) {
-	return uc.repo.GetFiltrosPlanoAcao(reservatorioID)
 }
 
 func (uc *ReservatorioUseCase) ListarUsosAgua(reservatorioID int) ([]model.UsoAgua, error) {
@@ -156,62 +138,6 @@ func (uc *ReservatorioUseCase) ObterDadosGrafico(reservatorioID int) ([]model.Gr
 	}
 
 	return grafico, nil
-}
-
-func (uc *ReservatorioUseCase) ObterBalancoHidrico(reservatorioID int) (*model.BalancoHidricoResumo, error) {
-	// Busca dados paralelos
-	bm, err := uc.repo.GetBalancoMensal(reservatorioID)
-	if err != nil {
-		return nil, err
-	}
-
-	cd, err := uc.repo.GetComposicaoDemanda(reservatorioID)
-	if err != nil {
-		return nil, err
-	}
-
-	od, err := uc.repo.GetOfertaDemanda(reservatorioID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Formatação para JSON igual ao Python
-	// Aqui convertemos para maps para formatar nomes de chaves customizados se necessário
-	// ou cálculos simples (como Balanço = Afluencia - Demanda)
-
-	var listaBM []map[string]interface{}
-	for _, item := range bm {
-		listaBM = append(listaBM, map[string]interface{}{
-			"Mês":               item.Mes,
-			"Afluência (m³/s)":  item.AfluenciaM3s,
-			"Demanda (m³/s)":    item.DemandasM3s,
-			"Balanço (m³/s)":    item.AfluenciaM3s - item.DemandasM3s, // Cálculo feito on-the-fly
-			"Evaporação (m³/s)": item.EvaporacaoM3s,
-		})
-	}
-
-	var listaCD []map[string]interface{}
-	for _, item := range cd {
-		listaCD = append(listaCD, map[string]interface{}{
-			"Uso":         item.Usos,
-			"Vazão (L/s)": item.DemandasHm3,
-		})
-	}
-
-	var listaOD []map[string]interface{}
-	for _, item := range od {
-		listaOD = append(listaOD, map[string]interface{}{
-			"Cenário":       item.Cenarios,
-			"Oferta (L/s)":  item.OfertaM3s,
-			"Demanda (L/s)": item.DemandaM3s,
-		})
-	}
-
-	return &model.BalancoHidricoResumo{
-		BalancoMensal:     listaBM,
-		ComposicaoDemanda: listaCD,
-		OfertaDemanda:     listaOD,
-	}, nil
 }
 
 func (uc *ReservatorioUseCase) ObterDetalhesReservatorio(id int) (*model.ReservatorioDetalhes, error) {

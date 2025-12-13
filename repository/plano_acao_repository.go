@@ -1,0 +1,55 @@
+package repository
+
+import (
+	"github.com/guiezz/dashboard-api/model"
+	"gorm.io/gorm"
+)
+
+type PlanoAcaoRepository struct {
+	db *gorm.DB
+}
+
+func NewPlanoAcaoRepository(db *gorm.DB) *PlanoAcaoRepository {
+	return &PlanoAcaoRepository{db: db}
+}
+
+func (r *PlanoAcaoRepository) Listar(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error) {
+	var planos []model.PlanoAcao
+	query := r.db.Where("reservatorio_id = ?", reservatorioID)
+
+	if situacao != "" {
+		query = query.Where("situacao = ?", situacao)
+	}
+	if estado != "" {
+		query = query.Where("estado_seca = ?", estado)
+	}
+	// ... (outros filtros igual ao original) ...
+	if impacto != "" {
+		query = query.Where("tipos_impactos = ?", impacto)
+	}
+	if problema != "" {
+		query = query.Where("problemas = ?", problema)
+	}
+	if acao != "" {
+		query = query.Where("acoes = ?", acao)
+	}
+
+	result := query.Find(&planos)
+	return planos, result.Error
+}
+
+func (r *PlanoAcaoRepository) ObterFiltros(reservatorioID int) (*model.FiltrosPlanoAcao, error) {
+	var estados, impactos, problemas, acoes []string
+
+	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("estado_seca", &estados)
+	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("tipos_impactos", &impactos)
+	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("problemas", &problemas)
+	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("acoes", &acoes)
+
+	return &model.FiltrosPlanoAcao{
+		Estados:   estados,
+		Impactos:  impactos,
+		Problemas: problemas,
+		Acoes:     acoes,
+	}, nil
+}

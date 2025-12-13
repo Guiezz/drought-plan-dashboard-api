@@ -72,53 +72,6 @@ func (c *ReservatorioController) GetDashboardSummary(ctx *gin.Context) {
 
 // --- NOVOS HANDLERS ---
 
-func (c *ReservatorioController) GetOngoingActions(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	// Situação fixa "Em andamento" ou similar no seu banco
-	acoes, err := c.useCase.ListarPlanosAcao(id, "Em andamento", "", "", "", "")
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, acoes)
-}
-
-func (c *ReservatorioController) GetCompletedActions(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	acoes, err := c.useCase.ListarPlanosAcao(id, "Concluído", "", "", "", "")
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, acoes)
-}
-
-func (c *ReservatorioController) GetActionPlans(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	// Pega filtros da Query String (ex: ?estado=ALERTA&impacto=SOCIAL)
-	estado := ctx.Query("estado")
-	impacto := ctx.Query("impacto")
-	problema := ctx.Query("problema")
-	acao := ctx.Query("acao")
-
-	planos, err := c.useCase.ListarPlanosAcao(id, "", estado, impacto, problema, acao)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, planos)
-}
-
-func (c *ReservatorioController) GetActionPlanFilters(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	filtros, err := c.useCase.ObterFiltrosPlanoAcao(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, filtros)
-}
-
 func (c *ReservatorioController) GetUsosAgua(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 	usos, err := c.useCase.ListarUsosAgua(id)
@@ -149,16 +102,6 @@ func (c *ReservatorioController) getIdParam(ctx *gin.Context) int {
 func (c *ReservatorioController) GetChartVolumeData(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 	dados, err := c.useCase.ObterDadosGrafico(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, dados)
-}
-
-func (c *ReservatorioController) GetWaterBalanceStaticCharts(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	dados, err := c.useCase.ObterBalancoHidrico(id)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
