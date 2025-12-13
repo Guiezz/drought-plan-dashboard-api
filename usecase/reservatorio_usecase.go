@@ -135,11 +135,18 @@ func (uc *ReservatorioUseCase) ObterDetalhesReservatorio(id int) (*model.Reserva
 		return nil, err
 	}
 
-	// Lógica de URL Base (Igual ao Python)
-	baseURL := os.Getenv("RAILWAY_STATIC_URL")
+	// --- CORREÇÃO AQUI ---
+	// Tenta pegar a URL do Render, senão usa localhost na porta 8000 (padrão do projeto)
+	baseURL := os.Getenv("RENDER_EXTERNAL_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8080" // Valor default local
+		baseURL = "http://localhost:8000"
 	}
+
+	// Remove barra final para evitar duplicidade (ex: .com//static)
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+	// ---------------------
 
 	// Monta as URLs
 	var urlImagem, urlUsos string

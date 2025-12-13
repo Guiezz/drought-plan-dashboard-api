@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"strings"
 
 	"github.com/guiezz/dashboard-api/config"
 	"github.com/guiezz/dashboard-api/controller"
@@ -12,9 +14,8 @@ import (
 	"github.com/guiezz/dashboard-api/router"
 	"github.com/guiezz/dashboard-api/usecase"
 
-	// IMPORTANTE: Isso será gerado no passo 1.4, mas precisamos importar
-	// Troque "github.com/guiezz/dashboard-api" pelo nome exato do seu módulo no go.mod
-	_ "github.com/guiezz/dashboard-api/docs"
+	// Importa o pacote docs gerado pelo Swaggo
+	"github.com/guiezz/dashboard-api/docs"
 )
 
 // @title           API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
@@ -30,7 +31,26 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// 2. Conexão DB (Passando a config)
+	// --- CORREÇÃO DO SWAGGER PARA O RENDER ---
+	// Pega a URL externa configurada no ambiente
+	externalURL := os.Getenv("RENDER_EXTERNAL_URL")
+	if externalURL != "" {
+		// O Swagger espera apenas o host (ex: meusite.onrender.com), sem https://
+		host := strings.Replace(externalURL, "https://", "", 1)
+		host = strings.Replace(host, "http://", "", 1)
+		// Remove barra final se existir
+		host = strings.TrimSuffix(host, "/")
+
+		docs.SwaggerInfo.Host = host
+		docs.SwaggerInfo.Schemes = []string{"https"}
+		docs.SwaggerInfo.Description += "\n\n**Ambiente de Produção (Render)**"
+	} else {
+		docs.SwaggerInfo.Host = "localhost:" + cfg.AppPort
+		docs.SwaggerInfo.Schemes = []string{"http"}
+	}
+	// -----------------------------------------
+
+	// 2. Conexão DB
 	dbConnection, err := db.ConnectDB(cfg)
 	if err != nil {
 		log.Fatalf("Erro ao conectar no banco: %v", err)

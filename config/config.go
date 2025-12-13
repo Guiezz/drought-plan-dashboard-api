@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -50,7 +51,7 @@ func (c *Config) GetDSN() string {
 // getEnv é uma função auxiliar para obter uma variável de ambiente com um valor padrão.
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
-		return value
+		return strings.TrimSpace(value)
 	}
 	return fallback
 }
