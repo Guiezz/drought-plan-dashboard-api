@@ -16,6 +16,14 @@ func NewResponsavelController(useCase *usecase.ResponsavelUseCase) *ResponsavelC
 	return &ResponsavelController{useCase: useCase}
 }
 
+// GetResponsaveis godoc
+// @Summary      Responsáveis
+// @Description  Lista as entidades e pessoas responsáveis pelo reservatório
+// @Tags         Cadastros Auxiliares
+// @Param        reservatorioId   path      int  true  "ID do Reservatório"
+// @Produce      json
+// @Success      200  {array}   model.Responsavel
+// @Router       /reservatorios/{reservatorioId}/responsibles [get]
 func (c *ResponsavelController) GetResponsaveis(ctx *gin.Context) {
 	idStr := ctx.Param("reservatorioId")
 	id, _ := strconv.Atoi(idStr)

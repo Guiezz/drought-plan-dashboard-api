@@ -1,0 +1,716 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API para gerenciamento e monitoramento de reservatórios hídricos do Ceará.",
+        "title": "API do dashboard de apoio a decisão dos planos de secas do estado do Ceará",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "Suporte",
+            "email": "guilhermebessanojosaaraujo@gmail.com"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8000",
+    "basePath": "/api",
+    "paths": {
+        "/reservatorios": {
+            "get": {
+                "description": "Retorna a lista de todos os reservatórios cadastrados",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservatórios"
+                ],
+                "summary": "Lista reservatórios",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Reservatorio"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/action-plans": {
+            "get": {
+                "description": "Busca planos baseados nos filtros opcionais (query params)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Planos de Ação"
+                ],
+                "summary": "Listar Planos de Ação (Com Filtros)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Estado de Seca (ex: SECA, ALERTA)",
+                        "name": "estado",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tipo de Impacto",
+                        "name": "impacto",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Problema Identificado",
+                        "name": "problema",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Nome da Ação",
+                        "name": "acao",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.PlanoAcao"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/action-plans/filters": {
+            "get": {
+                "description": "Retorna as listas de valores únicos disponíveis para filtrar os planos",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Planos de Ação"
+                ],
+                "summary": "Opções de Filtros",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.FiltrosPlanoAcao"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/completed-actions": {
+            "get": {
+                "description": "Lista planos de ação com situação 'Concluído'",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Planos de Ação"
+                ],
+                "summary": "Ações Concluídas",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.PlanoAcao"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/dashboard/summary": {
+            "get": {
+                "description": "Retorna volume atual, status de seca e resumo de ações recomendadas",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Resumo do Dashboard",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.DashboardResumo"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/dashboard/volume-chart": {
+            "get": {
+                "description": "Retorna série histórica de volume e linhas de meta (V.O.)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gráficos"
+                ],
+                "summary": "Dados do Gráfico de Volume",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.GraficoVolumeData"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/funceme-update": {
+            "post": {
+                "description": "Busca dados novos na API da Funceme e salva no banco se houver novidades",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Forçar Atualização Funceme",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/history": {
+            "get": {
+                "description": "Retorna tabela completa de monitoramento com status de seca calculado",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Monitoramento"
+                ],
+                "summary": "Histórico Tabular",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.HistoricoTabela"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/identification": {
+            "get": {
+                "description": "Retorna dados cadastrais, URLs de imagens e localização",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservatórios"
+                ],
+                "summary": "Identificação e Localização",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ReservatorioDetalhes"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/ongoing-actions": {
+            "get": {
+                "description": "Lista planos de ação com situação 'Em andamento'",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Planos de Ação"
+                ],
+                "summary": "Ações em Andamento",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.PlanoAcao"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/responsibles": {
+            "get": {
+                "description": "Lista as entidades e pessoas responsáveis pelo reservatório",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cadastros Auxiliares"
+                ],
+                "summary": "Responsáveis",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Responsavel"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/water-balance": {
+            "get": {
+                "description": "Retorna dados formatados para os 3 gráficos: Balanço Mensal, Demanda e Oferta",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Gráficos"
+                ],
+                "summary": "Gráficos de Balanço Hídrico",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.BalancoHidricoResumo"
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/water-uses": {
+            "get": {
+                "description": "Lista os usos e vazões cadastradas",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cadastros Auxiliares"
+                ],
+                "summary": "Usos da Água",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.UsoAgua"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "model.BalancoHidricoResumo": {
+            "type": "object",
+            "properties": {
+                "balancoMensal": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "composicaoDemanda": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                },
+                "ofertaDemanda": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            }
+        },
+        "model.DashboardResumo": {
+            "type": "object",
+            "properties": {
+                "dataUltimaMedicao": {
+                    "type": "string"
+                },
+                "diasDesdeUltimaMudanca": {
+                    "type": "integer"
+                },
+                "estadoAtualSeca": {
+                    "type": "string"
+                },
+                "medidasRecomendadas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.PlanoAcaoResumo"
+                    }
+                },
+                "volumeAtualHm3": {
+                    "type": "number"
+                },
+                "volumePercentual": {
+                    "type": "number"
+                }
+            }
+        },
+        "model.FiltrosPlanoAcao": {
+            "type": "object",
+            "properties": {
+                "acoes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "estados": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "impactos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "problemas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model.GraficoVolumeData": {
+            "type": "object",
+            "properties": {
+                "Data": {
+                    "description": "Frontend espera \"Data\" com D maiúsculo",
+                    "type": "string"
+                },
+                "meta1": {
+                    "type": "number"
+                },
+                "meta2": {
+                    "type": "number"
+                },
+                "meta3": {
+                    "type": "number"
+                },
+                "volume": {
+                    "type": "number"
+                }
+            }
+        },
+        "model.HistoricoTabela": {
+            "type": "object",
+            "properties": {
+                "Data": {
+                    "description": "Ex: \"25/12/2023\"",
+                    "type": "string"
+                },
+                "Estado de Seca": {
+                    "description": "Com espaços",
+                    "type": "string"
+                },
+                "Volume (hm3)": {
+                    "description": "Com unidade e parênteses",
+                    "type": "number"
+                }
+            }
+        },
+        "model.PlanoAcao": {
+            "type": "object",
+            "properties": {
+                "acoes": {
+                    "type": "string"
+                },
+                "classes_acao": {
+                    "type": "string"
+                },
+                "descricao_acao": {
+                    "type": "string"
+                },
+                "estado_seca": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "indicadores": {
+                    "type": "string"
+                },
+                "orgaos_envolvidos": {
+                    "type": "string"
+                },
+                "problemas": {
+                    "type": "string"
+                },
+                "reservatorio_id": {
+                    "type": "integer"
+                },
+                "responsaveis": {
+                    "type": "string"
+                },
+                "situacao": {
+                    "type": "string"
+                },
+                "tipos_impactos": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.PlanoAcaoResumo": {
+            "type": "object",
+            "properties": {
+                "acao": {
+                    "type": "string"
+                },
+                "descricao": {
+                    "type": "string"
+                },
+                "responsaveis": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Reservatorio": {
+            "type": "object",
+            "properties": {
+                "codigo_funceme": {
+                    "type": "string"
+                },
+                "descricao": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "long": {
+                    "type": "number"
+                },
+                "municipio": {
+                    "type": "string"
+                },
+                "nome": {
+                    "type": "string"
+                },
+                "nome_imagem": {
+                    "type": "string"
+                },
+                "nome_imagem_usos": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ReservatorioDetalhes": {
+            "type": "object",
+            "properties": {
+                "descricao": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "lat": {
+                    "type": "number"
+                },
+                "long": {
+                    "type": "number"
+                },
+                "municipio": {
+                    "type": "string"
+                },
+                "nome": {
+                    "type": "string"
+                },
+                "url_imagem": {
+                    "type": "string"
+                },
+                "url_imagem_usos": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Responsavel": {
+            "type": "object",
+            "properties": {
+                "cargo": {
+                    "type": "string"
+                },
+                "grupo": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "nome": {
+                    "type": "string"
+                },
+                "organizacao": {
+                    "type": "string"
+                },
+                "reservatorio_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UsoAgua": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "reservatorio_id": {
+                    "type": "integer"
+                },
+                "uso": {
+                    "type": "string"
+                },
+                "vazao_escassez": {
+                    "type": "number"
+                },
+                "vazao_normal": {
+                    "type": "number"
+                }
+            }
+        }
+    }
+}

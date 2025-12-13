@@ -11,8 +11,22 @@ import (
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/router"
 	"github.com/guiezz/dashboard-api/usecase"
+
+	// IMPORTANTE: Isso será gerado no passo 1.4, mas precisamos importar
+	// Troque "github.com/guiezz/dashboard-api" pelo nome exato do seu módulo no go.mod
+	_ "github.com/guiezz/dashboard-api/docs"
 )
 
+// @title           API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
+// @version         1.0
+// @description     API para gerenciamento e monitoramento de reservatórios hídricos do Ceará.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name    Suporte
+// @contact.email   guilhermebessanojosaaraujo@gmail.com
+
+// @host            localhost:8000
+// @BasePath        /api
 func main() {
 	cfg := config.LoadConfig()
 

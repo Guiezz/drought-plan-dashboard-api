@@ -1,0 +1,476 @@
+basePath: /api
+definitions:
+  model.BalancoHidricoResumo:
+    properties:
+      balancoMensal:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      composicaoDemanda:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+      ofertaDemanda:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+    type: object
+  model.DashboardResumo:
+    properties:
+      dataUltimaMedicao:
+        type: string
+      diasDesdeUltimaMudanca:
+        type: integer
+      estadoAtualSeca:
+        type: string
+      medidasRecomendadas:
+        items:
+          $ref: '#/definitions/model.PlanoAcaoResumo'
+        type: array
+      volumeAtualHm3:
+        type: number
+      volumePercentual:
+        type: number
+    type: object
+  model.FiltrosPlanoAcao:
+    properties:
+      acoes:
+        items:
+          type: string
+        type: array
+      estados:
+        items:
+          type: string
+        type: array
+      impactos:
+        items:
+          type: string
+        type: array
+      problemas:
+        items:
+          type: string
+        type: array
+    type: object
+  model.GraficoVolumeData:
+    properties:
+      Data:
+        description: Frontend espera "Data" com D maiúsculo
+        type: string
+      meta1:
+        type: number
+      meta2:
+        type: number
+      meta3:
+        type: number
+      volume:
+        type: number
+    type: object
+  model.HistoricoTabela:
+    properties:
+      Data:
+        description: 'Ex: "25/12/2023"'
+        type: string
+      Estado de Seca:
+        description: Com espaços
+        type: string
+      Volume (hm3):
+        description: Com unidade e parênteses
+        type: number
+    type: object
+  model.PlanoAcao:
+    properties:
+      acoes:
+        type: string
+      classes_acao:
+        type: string
+      descricao_acao:
+        type: string
+      estado_seca:
+        type: string
+      id:
+        type: integer
+      indicadores:
+        type: string
+      orgaos_envolvidos:
+        type: string
+      problemas:
+        type: string
+      reservatorio_id:
+        type: integer
+      responsaveis:
+        type: string
+      situacao:
+        type: string
+      tipos_impactos:
+        type: string
+    type: object
+  model.PlanoAcaoResumo:
+    properties:
+      acao:
+        type: string
+      descricao:
+        type: string
+      responsaveis:
+        type: string
+    type: object
+  model.Reservatorio:
+    properties:
+      codigo_funceme:
+        type: string
+      descricao:
+        type: string
+      id:
+        type: integer
+      lat:
+        type: number
+      long:
+        type: number
+      municipio:
+        type: string
+      nome:
+        type: string
+      nome_imagem:
+        type: string
+      nome_imagem_usos:
+        type: string
+    type: object
+  model.ReservatorioDetalhes:
+    properties:
+      descricao:
+        type: string
+      id:
+        type: integer
+      lat:
+        type: number
+      long:
+        type: number
+      municipio:
+        type: string
+      nome:
+        type: string
+      url_imagem:
+        type: string
+      url_imagem_usos:
+        type: string
+    type: object
+  model.Responsavel:
+    properties:
+      cargo:
+        type: string
+      grupo:
+        type: string
+      id:
+        type: integer
+      nome:
+        type: string
+      organizacao:
+        type: string
+      reservatorio_id:
+        type: integer
+    type: object
+  model.UsoAgua:
+    properties:
+      id:
+        type: integer
+      reservatorio_id:
+        type: integer
+      uso:
+        type: string
+      vazao_escassez:
+        type: number
+      vazao_normal:
+        type: number
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: guilhermebessanojosaaraujo@gmail.com
+    name: Suporte
+  description: API para gerenciamento e monitoramento de reservatórios hídricos do
+    Ceará.
+  termsOfService: http://swagger.io/terms/
+  title: API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
+  version: "1.0"
+paths:
+  /reservatorios:
+    get:
+      description: Retorna a lista de todos os reservatórios cadastrados
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Reservatorio'
+            type: array
+      summary: Lista reservatórios
+      tags:
+      - Reservatórios
+  /reservatorios/{reservatorioId}/action-plans:
+    get:
+      description: Busca planos baseados nos filtros opcionais (query params)
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      - description: 'Estado de Seca (ex: SECA, ALERTA)'
+        in: query
+        name: estado
+        type: string
+      - description: Tipo de Impacto
+        in: query
+        name: impacto
+        type: string
+      - description: Problema Identificado
+        in: query
+        name: problema
+        type: string
+      - description: Nome da Ação
+        in: query
+        name: acao
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PlanoAcao'
+            type: array
+      summary: Listar Planos de Ação (Com Filtros)
+      tags:
+      - Planos de Ação
+  /reservatorios/{reservatorioId}/action-plans/filters:
+    get:
+      description: Retorna as listas de valores únicos disponíveis para filtrar os
+        planos
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FiltrosPlanoAcao'
+      summary: Opções de Filtros
+      tags:
+      - Planos de Ação
+  /reservatorios/{reservatorioId}/completed-actions:
+    get:
+      description: Lista planos de ação com situação 'Concluído'
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PlanoAcao'
+            type: array
+      summary: Ações Concluídas
+      tags:
+      - Planos de Ação
+  /reservatorios/{reservatorioId}/dashboard/summary:
+    get:
+      description: Retorna volume atual, status de seca e resumo de ações recomendadas
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DashboardResumo'
+      summary: Resumo do Dashboard
+      tags:
+      - Dashboard
+  /reservatorios/{reservatorioId}/dashboard/volume-chart:
+    get:
+      description: Retorna série histórica de volume e linhas de meta (V.O.)
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.GraficoVolumeData'
+            type: array
+      summary: Dados do Gráfico de Volume
+      tags:
+      - Gráficos
+  /reservatorios/{reservatorioId}/funceme-update:
+    post:
+      description: Busca dados novos na API da Funceme e salva no banco se houver
+        novidades
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Forçar Atualização Funceme
+      tags:
+      - Admin
+  /reservatorios/{reservatorioId}/history:
+    get:
+      description: Retorna tabela completa de monitoramento com status de seca calculado
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.HistoricoTabela'
+            type: array
+      summary: Histórico Tabular
+      tags:
+      - Monitoramento
+  /reservatorios/{reservatorioId}/identification:
+    get:
+      description: Retorna dados cadastrais, URLs de imagens e localização
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ReservatorioDetalhes'
+      summary: Identificação e Localização
+      tags:
+      - Reservatórios
+  /reservatorios/{reservatorioId}/ongoing-actions:
+    get:
+      description: Lista planos de ação com situação 'Em andamento'
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.PlanoAcao'
+            type: array
+      summary: Ações em Andamento
+      tags:
+      - Planos de Ação
+  /reservatorios/{reservatorioId}/responsibles:
+    get:
+      description: Lista as entidades e pessoas responsáveis pelo reservatório
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Responsavel'
+            type: array
+      summary: Responsáveis
+      tags:
+      - Cadastros Auxiliares
+  /reservatorios/{reservatorioId}/water-balance:
+    get:
+      description: 'Retorna dados formatados para os 3 gráficos: Balanço Mensal, Demanda
+        e Oferta'
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.BalancoHidricoResumo'
+      summary: Gráficos de Balanço Hídrico
+      tags:
+      - Gráficos
+  /reservatorios/{reservatorioId}/water-uses:
+    get:
+      description: Lista os usos e vazões cadastradas
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.UsoAgua'
+            type: array
+      summary: Usos da Água
+      tags:
+      - Cadastros Auxiliares
+swagger: "2.0"
