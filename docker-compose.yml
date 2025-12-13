@@ -1,6 +1,25 @@
 version: "3.9"
 
 services:
+  # Serviço da API (NOVO)
+  app:
+    container_name: dashboard_api
+    build: . # Constrói usando o Dockerfile na pasta atual
+    ports:
+      - "8000:8000" # Mapeia a porta 8000 do container para a 8000 do seu PC
+    environment:
+      # Configurações lidas pelo seu config.go
+      - POSTGRES_HOST=go_db # Nome do serviço do banco abaixo
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_PORT=5432
+      - PORT=8000
+    depends_on:
+      - go_db # Garante que o banco inicie antes da API
+    restart: always
+
+  # Serviço do Banco de Dados (JÁ EXISTIA)
   go_db:
     container_name: dashboard_go_db
     image: postgres:12
