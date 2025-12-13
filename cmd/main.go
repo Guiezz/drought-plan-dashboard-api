@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/controller"
 	"github.com/guiezz/dashboard-api/db"
+	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/usecase"
 )
@@ -18,12 +19,10 @@ func main() {
 	}
 
 	// 2. Inicialização das Camadas
-	// Repository recebe *gorm.DB
 	reservatorioRepo := repository.NewReservatorioRepository(dbConnection)
+	secaCalc := calculator.NewSecaCalculator()
 
-	// UseCase recebe a Interface (não muda nada aqui, o que é ótimo!)
-	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo)
-
+	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, secaCalc)
 	// Controller
 	reservatorioController := controller.NewReservatorioController(reservatorioUseCase)
 

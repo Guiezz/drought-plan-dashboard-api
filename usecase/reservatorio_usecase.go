@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/model"
 )
 
@@ -34,10 +35,14 @@ type ReservatorioRepositoryInterface interface {
 
 type ReservatorioUseCase struct {
 	repo ReservatorioRepositoryInterface
+	calc calculator.SecaCalculator
 }
 
-func NewReservatorioUseCase(repo ReservatorioRepositoryInterface) *ReservatorioUseCase {
-	return &ReservatorioUseCase{repo: repo}
+func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, calc calculator.SecaCalculator) *ReservatorioUseCase {
+	return &ReservatorioUseCase{
+		repo: repo,
+		calc: calc,
+	}
 }
 
 func (uc *ReservatorioUseCase) ListarTodos() ([]model.Reservatorio, error) {
@@ -56,22 +61,21 @@ func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.
 		return nil, err
 	}
 
-	// 2. Cálculo do Estado de Seca
-	estadoAtual := calcularEstadoSeca(ultimoMonit, metas)
+	// 2. Cálculo do Estado de Seca (USANDO A NOVA CALCULADORA)
+	estadoAtual := uc.calc.CalcularEstado(ultimoMonit, metas)
 
 	// 3. Cálculo de Dias desde a última mudança
 	diasDesdeMudanca := 0
 	historico, err := uc.repo.GetHistoricoMonitoramento(reservatorioID, 365)
 	if err == nil && len(historico) > 1 {
-		diasDesdeMudanca = calcularDiasDesdeMudanca(estadoAtual, historico, metas)
+		// (USANDO A NOVA CALCULADORA)
+		diasDesdeMudanca = uc.calc.CalcularDiasDesdeMudanca(estadoAtual, historico, metas)
 	}
 
-	// 4. CORREÇÃO: Busca as Medidas Recomendadas baseadas no estado atual
-	// A função GetPlanosAcao espera: (id, situacao, estado, impacto, problema, acao)
-	// Passamos apenas o 'estado' para filtrar.
+	// ... (Resto do método continua igual: busca planos de ação e monta resumo) ...
+
 	planos, err := uc.repo.GetPlanosAcao(reservatorioID, "", estadoAtual, "", "", "")
 
-	// Mapeia para o DTO simplificado que o Dashboard espera
 	var medidasRecomendadas []model.PlanoAcaoResumo
 	if err == nil {
 		for _, p := range planos {
@@ -82,79 +86,19 @@ func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.
 			})
 		}
 	} else {
-		// Se der erro ao buscar planos, logamos (opcional) mas não quebramos o dashboard inteiro,
-		// retornamos lista vazia.
 		medidasRecomendadas = []model.PlanoAcaoResumo{}
 	}
 
-	// 5. Monta o DTO de resposta final
 	resumo := &model.DashboardResumo{
 		VolumeAtualHm3:      ultimoMonit.VolumeHm3,
 		VolumePercentual:    ultimoMonit.VolumePercentual,
 		EstadoAtualSeca:     estadoAtual,
 		DataUltimaMedicao:   ultimoMonit.Data.Format("2006-01-02"),
 		DiasDesdeMudanca:    diasDesdeMudanca,
-		MedidasRecomendadas: medidasRecomendadas, // Agora populado!
+		MedidasRecomendadas: medidasRecomendadas,
 	}
 
 	return resumo, nil
-}
-
-// --- Funções Auxiliares de Lógica de Negócio ---
-
-func calcularEstadoSeca(m *model.Monitoramento, metas []model.VolumeMeta) string {
-	mesMonitoramento := int(m.Data.Month())
-
-	// Encontra a meta correspondente ao mês do monitoramento
-	var metaMes model.VolumeMeta
-	found := false
-	for _, meta := range metas {
-		if meta.MesNum == mesMonitoramento {
-			metaMes = meta
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return "NÃO DEFINIDO"
-	}
-
-	// Lógica replicada do Python (np.select)
-	// IMPORTANTE: Verifique se no banco 'volume_percentual' é 0-100 ou 0-1.
-	// Assumindo 0-100 conforme o seu código Python original parecia tratar na visualização.
-	volDecimal := m.VolumePercentual / 100.0
-
-	if volDecimal < metaMes.Meta1v {
-		return "SECA SEVERA"
-	}
-	if volDecimal < metaMes.Meta2v {
-		return "SECA"
-	}
-	if volDecimal < metaMes.Meta3v {
-		return "ALERTA"
-	}
-	return "NORMAL"
-}
-
-func calcularDiasDesdeMudanca(estadoAtual string, historico []model.Monitoramento, metas []model.VolumeMeta) int {
-	// Itera do mais recente para o mais antigo (excluindo o atual que é o índice 0 ou comparando com ele)
-	dataAtual := historico[0].Data
-
-	for _, registro := range historico {
-		estadoRegistro := calcularEstadoSeca(&registro, metas)
-
-		// Se o estado for diferente do atual, encontramos a data da mudança
-		if estadoRegistro != estadoAtual {
-			// Diferença em dias
-			diff := dataAtual.Sub(registro.Data)
-			return int(diff.Hours() / 24)
-		}
-	}
-
-	// Se percorreu todo o histórico e não mudou, retorna dias totais do histórico
-	diff := dataAtual.Sub(historico[len(historico)-1].Data)
-	return int(diff.Hours() / 24)
 }
 
 func (uc *ReservatorioUseCase) ListarPlanosAcao(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error) {
@@ -316,25 +260,15 @@ func (uc *ReservatorioUseCase) ObterHistoricoTabular(id int) ([]model.HistoricoT
 		return nil, err
 	}
 
-	// Mapa de metas para performance (O(1))
-	mapaMetas := make(map[int]model.VolumeMeta)
-	for _, m := range metas {
-		mapaMetas[m.MesNum] = m
-	}
-
 	// 3. Monta a lista formatada
 	var tabela []model.HistoricoTabela
 	for _, registro := range historico {
-		// Calcula estado
-		// (Assume-se que calcularEstadoSeca aceita *Monitoramento e []VolumeMeta,
-		// mas podemos otimizar passando a meta direta se refatorarmos,
-		// por hora usamos a função existente passando o slice completo ou ajustamos)
-
-		// NOTA: Para reusar a função 'calcularEstadoSeca' existente que pede slice:
-		estado := calcularEstadoSeca(&registro, metas)
+		// (USANDO A NOVA CALCULADORA)
+		// Nota: Passamos &registro porque a calculadora espera um ponteiro
+		estado := uc.calc.CalcularEstado(&registro, metas)
 
 		tabela = append(tabela, model.HistoricoTabela{
-			Data:       registro.Data.Format("02/01/2006"), // Formato Brasileiro dd/mm/yyyy
+			Data:       registro.Data.Format("02/01/2006"),
 			EstadoSeca: estado,
 			VolumeHm3:  registro.VolumeHm3,
 		})
