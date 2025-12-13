@@ -70,28 +70,6 @@ func (c *ReservatorioController) GetDashboardSummary(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resumo)
 }
 
-// --- NOVOS HANDLERS ---
-
-func (c *ReservatorioController) GetUsosAgua(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	usos, err := c.useCase.ListarUsosAgua(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, usos)
-}
-
-func (c *ReservatorioController) GetResponsaveis(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	resps, err := c.useCase.ListarResponsaveis(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusOK, resps)
-}
-
 // Helper para pegar ID da URL
 func (c *ReservatorioController) getIdParam(ctx *gin.Context) int {
 	idStr := ctx.Param("reservatorioId")

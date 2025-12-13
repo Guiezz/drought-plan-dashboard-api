@@ -51,20 +51,6 @@ func (r *ReservatorioRepository) GetHistoricoMonitoramento(reservatorioID int, l
 	return historico, result.Error
 }
 
-func (r *ReservatorioRepository) GetUsosAgua(reservatorioID int) ([]model.UsoAgua, error) {
-	var usos []model.UsoAgua
-	result := r.db.Where("reservatorio_id = ?", reservatorioID).Find(&usos)
-	return usos, result.Error
-}
-
-func (r *ReservatorioRepository) GetResponsaveis(reservatorioID int) ([]model.Responsavel, error) {
-	var responsaveis []model.Responsavel
-	result := r.db.Where("reservatorio_id = ?", reservatorioID).
-		Order("grupo, organizacao, nome").
-		Find(&responsaveis)
-	return responsaveis, result.Error
-}
-
 func (r *ReservatorioRepository) GetReservatorioByID(id int) (*model.Reservatorio, error) {
 	var res model.Reservatorio
 	result := r.db.First(&res, id)

@@ -3,13 +3,13 @@ package db
 import (
 	"fmt"
 
+	"github.com/guiezz/dashboard-api/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-func ConnectDB() (*gorm.DB, error) {
-	// Dica: Use variáveis de ambiente para credenciais em produção
-	dsn := "host=localhost user=postgres password=postgres dbname=postgres port=5432 sslmode=disable"
+func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
+	dsn := cfg.GetDSN()
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {

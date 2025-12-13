@@ -17,9 +17,6 @@ type ReservatorioRepositoryInterface interface {
 	GetMetas(reservatorioID int) ([]model.VolumeMeta, error)
 	GetHistoricoMonitoramento(reservatorioID int, limit int) ([]model.Monitoramento, error)
 
-	GetUsosAgua(reservatorioID int) ([]model.UsoAgua, error)
-	GetResponsaveis(reservatorioID int) ([]model.Responsavel, error)
-
 	GetDatasMonitoramento(reservatorioID int) (map[string]bool, error)
 	SalvarMonitoramentos(registros []model.Monitoramento) error
 }
@@ -89,14 +86,6 @@ func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.
 	}
 
 	return resumo, nil
-}
-
-func (uc *ReservatorioUseCase) ListarUsosAgua(reservatorioID int) ([]model.UsoAgua, error) {
-	return uc.repo.GetUsosAgua(reservatorioID)
-}
-
-func (uc *ReservatorioUseCase) ListarResponsaveis(reservatorioID int) ([]model.Responsavel, error) {
-	return uc.repo.GetResponsaveis(reservatorioID)
 }
 
 func (uc *ReservatorioUseCase) ObterDadosGrafico(reservatorioID int) ([]model.GraficoVolumeData, error) {
