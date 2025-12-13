@@ -1,6 +1,9 @@
 package router
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/controller"
 )
@@ -14,8 +17,16 @@ func SetupRouter(
 ) *gin.Engine {
 	r := gin.Default()
 
-	// Configuração de CORS (Recomendado adicionar no próximo passo)
-	// ...
+	//Cors
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,
+
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong!"})
