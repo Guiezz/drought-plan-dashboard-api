@@ -7,6 +7,7 @@ import (
 	"github.com/guiezz/dashboard-api/controller"
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/internal/calculator"
+	"github.com/guiezz/dashboard-api/internal/funceme"
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/usecase"
 )
@@ -20,9 +21,11 @@ func main() {
 
 	// 2. Inicialização das Camadas
 	reservatorioRepo := repository.NewReservatorioRepository(dbConnection)
-	secaCalc := calculator.NewSecaCalculator()
 
-	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, secaCalc)
+	secaCalc := calculator.NewSecaCalculator()
+	funcemeSvc := funceme.NewFuncemeService()
+
+	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, secaCalc, funcemeSvc)
 	// Controller
 	reservatorioController := controller.NewReservatorioController(reservatorioUseCase)
 

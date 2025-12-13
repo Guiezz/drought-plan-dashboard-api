@@ -1,13 +1,11 @@
 package usecase
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/guiezz/dashboard-api/internal/calculator"
+	"github.com/guiezz/dashboard-api/internal/funceme"
 	"github.com/guiezz/dashboard-api/model"
 )
 
@@ -34,14 +32,16 @@ type ReservatorioRepositoryInterface interface {
 }
 
 type ReservatorioUseCase struct {
-	repo ReservatorioRepositoryInterface
-	calc calculator.SecaCalculator
+	repo       ReservatorioRepositoryInterface
+	calc       calculator.SecaCalculator
+	funcemeSvc funceme.Service
 }
 
-func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, calc calculator.SecaCalculator) *ReservatorioUseCase {
+func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, calc calculator.SecaCalculator, funcemeSvc funceme.Service) *ReservatorioUseCase {
 	return &ReservatorioUseCase{
-		repo: repo,
-		calc: calc,
+		repo:       repo,
+		calc:       calc,
+		funcemeSvc: funcemeSvc,
 	}
 }
 
@@ -287,67 +287,42 @@ func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, e
 		return 0, fmt.Errorf("reservatório sem código FUNCEME cadastrado")
 	}
 
-	// 2. Prepara a URL (Lógica do Python: de 2023-01-01 até Hoje)
-	hoje := time.Now().Format("2006-01-02")
-	url := fmt.Sprintf("https://apil5.funceme.br/rpc/v1/reservatorio-series?reservatorio_id=%s&data_inicio=2023-01-01&data_fim=%s", res.CodigoFunceme, hoje)
-
-	// 3. Faz a requisição HTTP GET
-	resp, err := http.Get(url)
+	// 2. Busca dados na API externa usando o serviço dedicado
+	// Definimos uma data de início fixa conforme sua lógica original
+	novosDados, err := uc.funcemeSvc.BuscarSeriesHistoricas(res.CodigoFunceme, "2023-01-01")
 	if err != nil {
-		return 0, fmt.Errorf("erro ao conectar na FUNCEME: %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("API FUNCEME retornou status: %d", resp.StatusCode)
+		return 0, err
 	}
 
-	// 4. Decodifica o JSON
-	var funcemeResp model.FuncemeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&funcemeResp); err != nil {
-		return 0, fmt.Errorf("erro ao ler JSON da FUNCEME: %v", err)
+	if len(novosDados) == 0 {
+		return 0, nil
 	}
 
-	listaDados := funcemeResp.Data.List
-	if len(listaDados) == 0 {
-		return 0, nil // Nenhum dado novo
-	}
-
-	// 5. Busca datas existentes no banco para filtrar duplicatas
+	// 3. Busca datas existentes no banco para filtrar duplicatas
 	datasExistentes, err := uc.repo.GetDatasMonitoramento(reservatorioID)
 	if err != nil {
 		return 0, err
 	}
 
-	// 6. Filtra e cria objetos para salvar
-	var novosRegistros []model.Monitoramento
-	for _, item := range listaDados {
-		// A data vem "2023-10-25 00:00:00" ou similar, pegamos só a data
-		dataSimples := item.DataStr
-		if len(dataSimples) >= 10 {
-			dataSimples = dataSimples[:10]
-		}
+	// 4. Filtra e prepara para salvar
+	var registrosParaSalvar []model.Monitoramento
+	for _, m := range novosDados {
+		dataKey := m.Data.Format("2006-01-02")
 
 		// Se não existe no mapa, adiciona
-		if !datasExistentes[dataSimples] {
-			// Parse da string para time.Time do Go
-			dataTime, _ := time.Parse("2006-01-02", dataSimples)
-
-			novosRegistros = append(novosRegistros, model.Monitoramento{
-				ReservatorioID:   uint(reservatorioID),
-				Data:             dataTime,
-				VolumeHm3:        item.Volume,
-				VolumePercentual: item.VolumePerc,
-			})
+		if !datasExistentes[dataKey] {
+			// Atribui o ID do reservatório que o serviço externo desconhece
+			m.ReservatorioID = uint(reservatorioID)
+			registrosParaSalvar = append(registrosParaSalvar, m)
 		}
 	}
 
-	// 7. Salva no banco
-	if len(novosRegistros) > 0 {
-		if err := uc.repo.SalvarMonitoramentos(novosRegistros); err != nil {
+	// 5. Salva no banco
+	if len(registrosParaSalvar) > 0 {
+		if err := uc.repo.SalvarMonitoramentos(registrosParaSalvar); err != nil {
 			return 0, err
 		}
 	}
 
-	return len(novosRegistros), nil
+	return len(registrosParaSalvar), nil
 }
