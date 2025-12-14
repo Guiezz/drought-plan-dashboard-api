@@ -19,7 +19,7 @@ func NewBalancoHidricoUseCase(repo BalancoHidricoRepositoryInterface) *BalancoHi
 }
 
 func (uc *BalancoHidricoUseCase) ObterResumo(reservatorioID int) (*model.BalancoHidricoResumo, error) {
-	// 1. Busca dados em paralelo (ou sequencial rápido)
+	// 1. Busca dados
 	bm, err := uc.repo.GetBalancoMensal(reservatorioID)
 	if err != nil {
 		return nil, err
@@ -35,7 +35,6 @@ func (uc *BalancoHidricoUseCase) ObterResumo(reservatorioID int) (*model.Balanco
 		return nil, err
 	}
 
-	// 2. Formatação para o Frontend
 	var listaBM []map[string]interface{}
 	for _, item := range bm {
 		listaBM = append(listaBM, map[string]interface{}{
@@ -51,7 +50,7 @@ func (uc *BalancoHidricoUseCase) ObterResumo(reservatorioID int) (*model.Balanco
 	for _, item := range cd {
 		listaCD = append(listaCD, map[string]interface{}{
 			"Uso":         item.Usos,
-			"Vazão (L/s)": item.DemandasHm3,
+			"Vazão (L/s)": item.DemandasHm3 * 1000, // [CORREÇÃO] Conversão aplicada
 		})
 	}
 
@@ -59,8 +58,8 @@ func (uc *BalancoHidricoUseCase) ObterResumo(reservatorioID int) (*model.Balanco
 	for _, item := range od {
 		listaOD = append(listaOD, map[string]interface{}{
 			"Cenário":       item.Cenarios,
-			"Oferta (L/s)":  item.OfertaM3s,
-			"Demanda (L/s)": item.DemandaM3s,
+			"Oferta (L/s)":  item.OfertaM3s * 1000,  // m³/s -> L/s
+			"Demanda (L/s)": item.DemandaM3s * 1000, // m³/s -> L/s
 		})
 	}
 
