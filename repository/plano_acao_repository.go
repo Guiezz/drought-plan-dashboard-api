@@ -14,7 +14,8 @@ func NewPlanoAcaoRepository(db *gorm.DB) *PlanoAcaoRepository {
 }
 
 func (r *PlanoAcaoRepository) Listar(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error) {
-	var planos []model.PlanoAcao
+	planos := make([]model.PlanoAcao, 0)
+
 	query := r.db.Where("reservatorio_id = ?", reservatorioID)
 
 	if situacao != "" {
@@ -23,7 +24,6 @@ func (r *PlanoAcaoRepository) Listar(reservatorioID int, situacao, estado, impac
 	if estado != "" {
 		query = query.Where("estado_seca = ?", estado)
 	}
-	// ... (outros filtros igual ao original) ...
 	if impacto != "" {
 		query = query.Where("tipos_impactos = ?", impacto)
 	}
@@ -39,7 +39,10 @@ func (r *PlanoAcaoRepository) Listar(reservatorioID int, situacao, estado, impac
 }
 
 func (r *PlanoAcaoRepository) ObterFiltros(reservatorioID int) (*model.FiltrosPlanoAcao, error) {
-	var estados, impactos, problemas, acoes []string
+	estados := make([]string, 0)
+	impactos := make([]string, 0)
+	problemas := make([]string, 0)
+	acoes := make([]string, 0)
 
 	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("estado_seca", &estados)
 	r.db.Model(&model.PlanoAcao{}).Where("reservatorio_id = ?", reservatorioID).Distinct().Pluck("tipos_impactos", &impactos)
