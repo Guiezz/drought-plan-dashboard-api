@@ -30,9 +30,11 @@ type OfertaDemanda struct {
 	ID             uint `gorm:"primaryKey" json:"id"`
 	ReservatorioID uint `json:"reservatorio_id"`
 
-	Cenarios   string  `gorm:"column:cenarios" json:"cenarios"`
-	OfertaM3s  float64 `gorm:"column:oferta_m3s" json:"oferta_m3s"`
-	DemandaM3s float64 `gorm:"column:demanda_m3s" json:"demanda_m3s"`
+	Cenarios string `gorm:"column:cenarios" json:"cenarios"`
+	// CORREÇÃO: Alterado de "oferta_l/s" para "oferta_ls" nas tags do banco (gorm)
+	// O JSON pode manter o formato original se o frontend esperar isso.
+	OfertaLs  float64 `gorm:"column:oferta_ls" json:"oferta_l/s"`
+	DemandaLs float64 `gorm:"column:demanda_ls" json:"demanda_l/s"`
 }
 
 func (OfertaDemanda) TableName() string {

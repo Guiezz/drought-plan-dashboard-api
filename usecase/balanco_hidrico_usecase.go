@@ -58,8 +58,8 @@ func (uc *BalancoHidricoUseCase) ObterResumo(reservatorioID int) (*model.Balanco
 	for _, item := range od {
 		listaOD = append(listaOD, map[string]interface{}{
 			"Cenário":       item.Cenarios,
-			"Oferta (L/s)":  item.OfertaM3s * 1000,  // m³/s -> L/s
-			"Demanda (L/s)": item.DemandaM3s * 1000, // m³/s -> L/s
+			"Oferta (L/s)":  item.OfertaLs,  // m³/s -> L/s
+			"Demanda (L/s)": item.DemandaLs, // m³/s -> L/s
 		})
 	}
 
