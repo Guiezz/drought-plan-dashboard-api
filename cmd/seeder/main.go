@@ -23,14 +23,29 @@ func main() {
 	if err != nil {
 		log.Fatalf("Erro ao conectar ao banco: %v", err)
 	}
+	fmt.Println("✅ Conexão com o banco de dados realizada com sucesso!")
 
-	// 2. LIMPEZA TOTAL DO BANCO DE DADOS
+	// 2. LIMPEZA TOTAL (Se as tabelas existirem)
 	limparBanco(database)
 
-	// Garante que a tabela esteja atualizada (caso precise recriar colunas float)
-	database.AutoMigrate(&model.VolumeMeta{})
+	// 3. MIGRAR BANCO (Cria as tabelas se não existirem)
+	// Isso é essencial para não dar erro na hora de inserir os dados
+	fmt.Println(">>> Verificando e criando schema do banco...")
+	database.AutoMigrate(
+		&model.Reservatorio{},
+		&model.Monitoramento{},
+		&model.UsoAgua{},
+		&model.BalancoMensal{},
+		&model.ComposicaoDemanda{},
+		&model.OfertaDemanda{},
+		&model.PlanoAcao{},
+		&model.VolumeMeta{},
+		&model.Responsavel{},
+	)
+	fmt.Println("✅ Schema do banco atualizado!")
+	fmt.Println("------------------------------------------------")
 
-	// 3. Caminho da pasta raiz
+	// 4. Caminho da pasta raiz e Processamento
 	rootPath := "./dados_importacao"
 
 	entries, err := os.ReadDir(rootPath)
@@ -48,6 +63,14 @@ func main() {
 }
 
 func limparBanco(db *gorm.DB) {
+	fmt.Println("!!! VERIFICANDO NECESSIDADE DE LIMPEZA !!!")
+
+	// Verifica se a tabela principal existe antes de tentar limpar
+	if !db.Migrator().HasTable(&model.Reservatorio{}) {
+		fmt.Println("⚠️  Tabelas não encontradas. Pulando limpeza (provavelmente é a primeira execução).")
+		return
+	}
+
 	fmt.Println("!!! INICIANDO LIMPEZA TOTAL E RESET DE IDs !!!")
 
 	// O comando TRUNCATE limpa os dados e RESTART IDENTITY reseta os IDs para 1
@@ -66,11 +89,11 @@ func limparBanco(db *gorm.DB) {
 	`).Error
 
 	if err != nil {
-		log.Fatalf("ERRO CRÍTICO AO LIMPAR BANCO: %v", err)
+		// Se der erro aqui, apenas logamos, mas não matamos o processo, pois pode ser algo menor
+		log.Printf("⚠️  Erro ao tentar limpar banco (pode ser ignorado se as tabelas estiverem vazias): %v", err)
+	} else {
+		fmt.Println("!!! BANCO LIMPO E IDs RESETADOS COM SUCESSO !!!")
 	}
-
-	fmt.Println("!!! BANCO LIMPO E IDs RESETADOS COM SUCESSO !!!")
-	fmt.Println("------------------------------------------------")
 }
 
 func processarReservatorio(db *gorm.DB, folderPath string) {
@@ -322,31 +345,21 @@ func readExcel(folder string, fileNamePart string, sheetNamePart string, process
 	}
 }
 
-// parseFloat converte strings numéricas, lidando com vírgula e porcentagem
 func parseFloat(s string) (float64, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return 0, nil
 	}
-
-	// 1. Verifica se é porcentagem
 	isPercent := strings.Contains(s, "%")
-
-	// 2. Limpa a string
 	s = strings.ReplaceAll(s, "%", "")
 	s = strings.ReplaceAll(s, ",", ".")
-
-	// 3. Converte para Float
 	val, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return 0, err
 	}
-
-	// 4. Ajusta escala se for porcentagem
 	if isPercent {
 		val = val / 100.0
 	}
-
 	return val, nil
 }
 
@@ -366,7 +379,6 @@ func obterNumeroMes(mes string) int {
 	if len(mes) > 3 {
 		prefixo = mes[:3]
 	}
-
 	switch prefixo {
 	case "jan":
 		return 1

@@ -17,6 +17,7 @@ type Config struct {
 	DBName     string
 	DBPort     string
 	AppPort    string
+	DBSSLMode  string
 	// Se você tiver uma URL para a API Funceme, adicione aqui:
 	// FuncemeAPIURL string
 }
@@ -38,14 +39,15 @@ func LoadConfig() *Config {
 		DBName:     getEnv("POSTGRES_DB", "postgres"),
 		DBPort:     getEnv("POSTGRES_PORT", "5432"),
 		AppPort:    getEnv("PORT", "8000"),
+		DBSSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 		// FuncemeAPIURL: getEnv("FUNCEME_API_URL", "http://api.funceme.br/v1/"),
 	}
 }
 
 // GetDSN gera a string de conexão DSN (Data Source Name) para o GORM.
 func (c *Config) GetDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
-		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort)
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
+		c.DBHost, c.DBUser, c.DBPassword, c.DBName, c.DBPort, c.DBSSLMode) // <--- Agora com as 6 variáveis
 }
 
 // getEnv é uma função auxiliar para obter uma variável de ambiente com um valor padrão.
