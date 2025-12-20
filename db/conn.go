@@ -1,7 +1,7 @@
 package db
 
 import (
-	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 
@@ -12,31 +12,60 @@ import (
 	"gorm.io/gorm"
 )
 
-// ConnectDB conecta ao banco forçando IPv4 e desativando Prepared Statements
 func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := cfg.GetDSN()
 
-	// 1. Analisa a string de conexão (DSN) para criar a configuração do driver
+	// 1. Parse a configuração padrão do driver baseada na string de conexão
 	dbConfig, err := pgx.ParseConfig(dsn)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao analisar configuração do banco: %w", err)
 	}
 
-	// 2. TRUQUE PARA O RENDER: Forçar conexão via IPv4 (tcp4)
-	// O Render não suporta IPv6 de saída, mas o DNS do Supabase retorna IPv6.
-	// Esta função obriga o Go a resolver apenas o endereço IPv4.
-	dbConfig.DialFunc = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return net.Dial("tcp4", addr)
+	// 2. RESOLUÇÃO MANUAL DE DNS PARA IPV4
+	// O problema: O Render só fala IPv4, mas o Supabase entrega IPv6 por padrão no DNS.
+	// O driver pgx pega o IPv6 e trava. Aqui nós forçamos a pegar o IPv4.
+
+	originalHost := dbConfig.Host
+
+	// Busca todos os IPs desse host
+	ips, err := net.LookupIP(originalHost)
+	if err != nil {
+		return nil, fmt.Errorf("erro de DNS ao buscar IP para %s: %w", originalHost, err)
 	}
 
-	// 3. Abre a conexão "low-level" usando o driver configurado
+	var ipv4 string
+	for _, ip := range ips {
+		// Filtra apenas o que for IPv4
+		if ip.To4() != nil {
+			ipv4 = ip.String()
+			break
+		}
+	}
+
+	if ipv4 == "" {
+		return nil, fmt.Errorf("nenhum endereço IPv4 encontrado para %s (O Render exige IPv4)", originalHost)
+	}
+
+	// Substitui o hostname pelo IP numérico na configuração
+	dbConfig.Host = ipv4
+
+	// 3. AJUSTE DE SSL/TLS (Crítico quando se usa IP direto)
+	// Como trocamos o host pelo IP, o certificado SSL vai reclamar se não avisarmos
+	// qual é o "nome original" do servidor (ServerName / SNI).
+	if dbConfig.TLSConfig == nil {
+		dbConfig.TLSConfig = &tls.Config{}
+	}
+	dbConfig.TLSConfig.ServerName = originalHost
+	dbConfig.TLSConfig.MinVersion = tls.VersionTLS12
+
+	// 4. Abre a conexão usando o stdlib do pgx
 	sqlDB := stdlib.OpenDB(*dbConfig)
 
-	// 4. Inicializa o GORM usando essa conexão já aberta
+	// 5. Inicializa o GORM
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
-		// PrepareStmt: false é OBRIGATÓRIO para o Transaction Mode (Porta 6543) do Supabase
+		// Desativa Prepared Statements (obrigatório para Supabase Transaction Mode/Porta 6543)
 		PrepareStmt: false,
 	})
 
