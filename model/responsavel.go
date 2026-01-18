@@ -6,6 +6,7 @@ type Responsavel struct {
 	Nome           string `json:"nome"`
 	Grupo          string `json:"grupo"`
 	Organizacao    string `json:"organizacao"`
+	Setor          string `json:"setor"`
 	Cargo          string `json:"cargo"`
 }
 

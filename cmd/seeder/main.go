@@ -275,16 +275,24 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 
 	// --- I. Responsáveis ---
 	readExcel(folderPath, "responsaveis", "", func(row []string) {
-		if len(row) < 4 || strings.Contains(strings.ToLower(row[0]), "grupo") {
+		if len(row) == 0 || strings.Contains(strings.ToLower(row[0]), "grupo") {
 			return
+		}
+
+		getCol := func(idx int) string {
+			if idx < len(row) {
+				return strings.TrimSpace(row[idx])
+			}
+			return ""
 		}
 
 		db.Create(&model.Responsavel{
 			ReservatorioID: reservatorio.ID,
-			Grupo:          row[0],
-			Organizacao:    row[1],
-			Cargo:          row[2],
-			Nome:           row[3],
+			Grupo:          getCol(0),
+			Organizacao:    getCol(1),
+			Setor:          getCol(2),
+			Nome:           getCol(3),
+			Cargo:          getCol(4),
 		})
 	})
 }
