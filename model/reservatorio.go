@@ -9,6 +9,7 @@ type Reservatorio struct {
 	Long           float64 `json:"long"`
 	NomeImagem     string  `json:"nome_imagem"`
 	NomeImagemUsos string  `json:"nome_imagem_usos"`
+	Capacidadehm3  float64 `json:"capacidade_hm3"`
 	CodigoFunceme  string  `json:"codigo_funceme"`
 
 	// Relacionamentos (Opcional, mas útil no GORM)

@@ -99,8 +99,8 @@ func limparBanco(db *gorm.DB) {
 func processarReservatorio(db *gorm.DB, folderPath string) {
 	// --- A. Processar Identificação ---
 	var reservatorio model.Reservatorio
-	var nome, municipio, descricao, nomeImg, nomeImgUsos string
-	var lat, long float64
+	var nome, municipio, descricao, nomeImg, nomeImgUsos, codigo string
+	var lat, long, capacidade float64
 
 	readExcel(folderPath, "identificacao", "", func(row []string) {
 		if len(row) < 7 {
@@ -113,6 +113,8 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		descricao = row[0]
 		nomeImg = row[5]
 		nomeImgUsos = row[6]
+		capacidade, _ = parseFloat(row[7])
+		codigo = row[8]
 	})
 
 	if nome == "" {
@@ -128,6 +130,8 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		Long:           long,
 		NomeImagem:     nomeImg,
 		NomeImagemUsos: nomeImgUsos,
+		Capacidadehm3:  capacidade,
+		CodigoFunceme:  codigo,
 	}
 
 	if result := db.Where(model.Reservatorio{Nome: nome}).Attrs(resValues).FirstOrCreate(&reservatorio); result.Error != nil {
