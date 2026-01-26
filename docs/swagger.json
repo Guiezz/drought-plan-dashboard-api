@@ -13,6 +13,59 @@
     "host": "localhost:8000",
     "basePath": "/api",
     "paths": {
+        "/api/simulacao/acudes": {
+            "get": {
+                "tags": [
+                    "Simulacao"
+                ],
+                "summary": "Lista açudes disponíveis para simulação",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/simulador.SimAcude"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/simulacao/run": {
+            "post": {
+                "description": "Calcula o balanço hídrico mensal com base em dados históricos",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Simulacao"
+                ],
+                "summary": "Executa a simulação hídrica",
+                "parameters": [
+                    {
+                        "description": "Parâmetros da Simulação",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/simulador.SimulacaoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/simulador.SimulacaoResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/reservatorios": {
             "get": {
                 "description": "Retorna a lista de todos os reservatórios cadastrados",
@@ -611,6 +664,9 @@
         "model.Reservatorio": {
             "type": "object",
             "properties": {
+                "capacidade_hm3": {
+                    "type": "number"
+                },
                 "codigo_funceme": {
                     "type": "string"
                 },
@@ -689,6 +745,9 @@
                 },
                 "reservatorio_id": {
                     "type": "integer"
+                },
+                "setor": {
+                    "type": "string"
                 }
             }
         },
@@ -708,6 +767,103 @@
                     "type": "number"
                 },
                 "vazao_normal": {
+                    "type": "number"
+                }
+            }
+        },
+        "simulador.SimAcude": {
+            "type": "object",
+            "properties": {
+                "capacidade_m3": {
+                    "description": "Coluna CAPAC (m³)",
+                    "type": "number"
+                },
+                "codigo": {
+                    "description": "Coluna COD",
+                    "type": "integer"
+                },
+                "estacao_evap_id": {
+                    "description": "Coluna Est. Evap.",
+                    "type": "integer"
+                },
+                "municipio": {
+                    "description": "Coluna MUNICIPIO",
+                    "type": "string"
+                },
+                "nome": {
+                    "description": "Coluna CORPO",
+                    "type": "string"
+                }
+            }
+        },
+        "simulador.SimulacaoRequest": {
+            "type": "object",
+            "properties": {
+                "data_fim": {
+                    "type": "string"
+                },
+                "data_inicio": {
+                    "type": "string"
+                },
+                "demandas_mensais": {
+                    "description": "Opcionais (se quiser simular cenários manuais)",
+                    "type": "array",
+                    "items": {
+                        "type": "number"
+                    }
+                },
+                "reservatorio_id": {
+                    "type": "integer"
+                },
+                "usar_media_historica": {
+                    "description": "Se true, usa médias históricas do banco. Se false, usa os arrays abaixo.",
+                    "type": "boolean"
+                },
+                "volume_inicial": {
+                    "description": "Em hm³",
+                    "type": "number"
+                }
+            }
+        },
+        "simulador.SimulacaoResponse": {
+            "type": "object",
+            "properties": {
+                "frequencia_nao_atendida": {
+                    "type": "number"
+                },
+                "resultados": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/simulador.SimulacaoResultado"
+                    }
+                },
+                "volume_final": {
+                    "type": "number"
+                }
+            }
+        },
+        "simulador.SimulacaoResultado": {
+            "type": "object",
+            "properties": {
+                "afluencia_hm3": {
+                    "type": "number"
+                },
+                "alerta": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "string"
+                },
+                "evaporacao_hm3": {
+                    "type": "number"
+                },
+                "retirada_hm3": {
+                    "type": "number"
+                },
+                "vertimento_hm3": {
+                    "type": "number"
+                },
+                "volume_hm3": {
                     "type": "number"
                 }
             }
