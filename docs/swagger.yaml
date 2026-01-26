@@ -118,6 +118,8 @@ definitions:
     type: object
   model.Reservatorio:
     properties:
+      capacidade_hm3:
+        type: number
       codigo_funceme:
         type: string
       descricao:
@@ -170,6 +172,8 @@ definitions:
         type: string
       reservatorio_id:
         type: integer
+      setor:
+        type: string
     type: object
   model.UsoAgua:
     properties:
@@ -184,6 +188,73 @@ definitions:
       vazao_normal:
         type: number
     type: object
+  simulador.SimAcude:
+    properties:
+      capacidade_m3:
+        description: Coluna CAPAC (m³)
+        type: number
+      codigo:
+        description: Coluna COD
+        type: integer
+      estacao_evap_id:
+        description: Coluna Est. Evap.
+        type: integer
+      municipio:
+        description: Coluna MUNICIPIO
+        type: string
+      nome:
+        description: Coluna CORPO
+        type: string
+    type: object
+  simulador.SimulacaoRequest:
+    properties:
+      data_fim:
+        type: string
+      data_inicio:
+        type: string
+      demandas_mensais:
+        description: Opcionais (se quiser simular cenários manuais)
+        items:
+          type: number
+        type: array
+      reservatorio_id:
+        type: integer
+      usar_media_historica:
+        description: Se true, usa médias históricas do banco. Se false, usa os arrays
+          abaixo.
+        type: boolean
+      volume_inicial:
+        description: Em hm³
+        type: number
+    type: object
+  simulador.SimulacaoResponse:
+    properties:
+      frequencia_nao_atendida:
+        type: number
+      resultados:
+        items:
+          $ref: '#/definitions/simulador.SimulacaoResultado'
+        type: array
+      volume_final:
+        type: number
+    type: object
+  simulador.SimulacaoResultado:
+    properties:
+      afluencia_hm3:
+        type: number
+      alerta:
+        type: string
+      data:
+        type: string
+      evaporacao_hm3:
+        type: number
+      retirada_hm3:
+        type: number
+      vertimento_hm3:
+        type: number
+      volume_hm3:
+        type: number
+    type: object
 host: localhost:8000
 info:
   contact:
@@ -195,6 +266,40 @@ info:
   title: API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
   version: "1.0"
 paths:
+  /api/simulacao/acudes:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/simulador.SimAcude'
+            type: array
+      summary: Lista açudes disponíveis para simulação
+      tags:
+      - Simulacao
+  /api/simulacao/run:
+    post:
+      consumes:
+      - application/json
+      description: Calcula o balanço hídrico mensal com base em dados históricos
+      parameters:
+      - description: Parâmetros da Simulação
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/simulador.SimulacaoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/simulador.SimulacaoResponse'
+      summary: Executa a simulação hídrica
+      tags:
+      - Simulacao
   /reservatorios:
     get:
       description: Retorna a lista de todos os reservatórios cadastrados

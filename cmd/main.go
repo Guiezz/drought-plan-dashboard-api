@@ -62,10 +62,12 @@ func main() {
 	balancoRepo := repository.NewBalancoHidricoRepository(dbConnection)
 	usoRepo := repository.NewUsoAguaRepository(dbConnection)
 	respRepo := repository.NewResponsavelRepository(dbConnection)
+	simulacaoRepo := repository.NewSimulacaoRepository(dbConnection)
 
 	// 3. Serviços Internos (Cria as variáveis que estavam faltando)
 	secaCalc := calculator.NewSecaCalculator()
 	funcemeSvc := funceme.NewFuncemeService()
+	simulacaoCalc := calculator.NewSimuladorHidrico()
 
 	// 4. UseCases
 	reservatorioUseCase := usecase.NewReservatorioUseCase(reservatorioRepo, planoAcaoRepo, secaCalc, funcemeSvc)
@@ -73,6 +75,7 @@ func main() {
 	balancoUseCase := usecase.NewBalancoHidricoUseCase(balancoRepo)
 	usoUseCase := usecase.NewUsoAguaUseCase(usoRepo)
 	respUseCase := usecase.NewResponsavelUseCase(respRepo)
+	simulacaoUseCase := usecase.NewSimulacaoUseCase(simulacaoRepo, simulacaoCalc)
 
 	// 5. Controllers
 	reservatorioController := controller.NewReservatorioController(reservatorioUseCase)
@@ -80,6 +83,7 @@ func main() {
 	balancoController := controller.NewBalancoHidricoController(balancoUseCase)
 	usoController := controller.NewUsoAguaController(usoUseCase)
 	respController := controller.NewResponsavelController(respUseCase)
+	simulacaoController := controller.NewSimulacaoController(simulacaoUseCase)
 
 	// 6. Router
 	server := router.SetupRouter(
@@ -88,6 +92,7 @@ func main() {
 		balancoController,
 		usoController,
 		respController,
+		simulacaoController,
 	)
 
 	server.Run(":" + cfg.AppPort)

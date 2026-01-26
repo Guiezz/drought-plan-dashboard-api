@@ -17,6 +17,7 @@ func SetupRouter(
 	balancoCtrl *controller.BalancoHidricoController,
 	usoCtrl *controller.UsoAguaController,
 	respCtrl *controller.ResponsavelController,
+	simCtrl *controller.SimulacaoController,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -68,6 +69,13 @@ func SetupRouter(
 			res.GET("/water-balance", balancoCtrl.GetCharts)
 			res.GET("/water-uses", usoCtrl.GetUsos)
 			res.GET("/responsibles", respCtrl.GetResponsaveis)
+
+			// Simulação
+			sim := api.Group("/simulacao")
+			{
+				sim.POST("/run", simCtrl.Simular)
+				sim.GET("/acudes", simCtrl.ListarAcudes)
+			}
 		}
 	}
 
