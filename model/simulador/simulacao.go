@@ -31,13 +31,14 @@ type SimulacaoRequest struct {
 
 // SimulacaoResultados é o JSON de resposta
 type SimulacaoResultado struct {
-	Data       string  `json:"data"`
-	Volume     float64 `json:"volume_hm3"`
-	Afluencia  float64 `json:"afluencia_hm3"`
-	Retirada   float64 `json:"retirada_hm3"`
-	Evaporacao float64 `json:"evaporacao_hm3"`
-	Vertimento float64 `json:"vertimento_hm3"`
-	Alerta     string  `json:"alerta,omitempty"`
+	Data          string  `json:"data"`
+	VolumeInicial float64 `json:"volume_inicial_hm3"`
+	VolumeFinal   float64 `json:"volume_final_hm3"`
+	Afluencia     float64 `json:"afluencia_hm3"`
+	Retirada      float64 `json:"retirada_hm3"`
+	Evaporacao    float64 `json:"evaporacao_hm3"`
+	Vertimento    float64 `json:"vertimento_hm3"`
+	Alerta        string  `json:"alerta,omitempty"`
 }
 
 type SimulacaoResponse struct {
