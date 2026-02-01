@@ -128,15 +128,15 @@ func (s *SimuladorHidrico) Simular(
 
 		volumeAtual = vPotencial
 
-		// AQUI ESTAVA O ERRO: Removido math.Round para manter precisão
 		// O Frontend que decida quantas casas mostrar
 		resultados[t] = simulador.SimulacaoResultado{
-			Data:       "",
-			Volume:     volInicioMes,
-			Afluencia:  afluencia,
-			Retirada:   retiradaReal,
-			Evaporacao: evapHm3,
-			Vertimento: vertimento,
+			Data:          "",
+			VolumeInicial: volInicioMes,
+			VolumeFinal:   volumeAtual,
+			Afluencia:     afluencia,
+			Retirada:      retiradaReal,
+			Evaporacao:    evapHm3,
+			Vertimento:    vertimento,
 		}
 	}
 
