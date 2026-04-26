@@ -14,31 +14,27 @@ import (
 	"github.com/guiezz/dashboard-api/router"
 	"github.com/guiezz/dashboard-api/usecase"
 
-	// Importa o pacote docs gerado pelo Swaggo
 	"github.com/guiezz/dashboard-api/docs"
 )
 
-// @title           API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
-// @version         1.0
-// @description     API para gerenciamento e monitoramento de reservatórios hídricos do Ceará.
-// @termsOfService  http://swagger.io/terms/
+// @title           API do dashboard de apoio a decisão dos planos de secas do estado do Ceará
+// @version         1.0
+// @description     API para gerenciamento e monitoramento de reservatórios hídricos do Ceará.
+// @termsOfService  http://swagger.io/terms/
 
-// @contact.name    Suporte
-// @contact.email   guilhermebessanojosaaraujo@gmail.com
+// @contact.name    Suporte
+// @contact.email   guilhermebessanojosaaraujo@gmail.com
 
-// @host            localhost:8000
-// @BasePath        /api
+// @host            localhost:8000
+// @BasePath        /api
 func main() {
 	cfg := config.LoadConfig()
 
 	// --- CORREÇÃO DO SWAGGER PARA O RENDER ---
-	// Pega a URL externa configurada no ambiente
 	externalURL := os.Getenv("RENDER_EXTERNAL_URL")
 	if externalURL != "" {
-		// O Swagger espera apenas o host (ex: meusite.onrender.com), sem https://
 		host := strings.Replace(externalURL, "https://", "", 1)
 		host = strings.Replace(host, "http://", "", 1)
-		// Remove barra final se existir
 		host = strings.TrimSuffix(host, "/")
 
 		docs.SwaggerInfo.Host = host
@@ -50,7 +46,7 @@ func main() {
 	}
 	// -----------------------------------------
 
-	// 2. Conexão DB
+	// 1. Conexão DB
 	dbConnection, err := db.ConnectDB(cfg)
 	if err != nil {
 		log.Fatalf("Erro ao conectar no banco: %v", err)
@@ -64,7 +60,7 @@ func main() {
 	respRepo := repository.NewResponsavelRepository(dbConnection)
 	simulacaoRepo := repository.NewSimulacaoRepository(dbConnection)
 
-	// 3. Serviços Internos (Cria as variáveis que estavam faltando)
+	// 3. Serviços Internos
 	secaCalc := calculator.NewSecaCalculator()
 	funcemeSvc := funceme.NewFuncemeService()
 	simulacaoCalc := calculator.NewSimuladorHidrico()
@@ -85,7 +81,11 @@ func main() {
 	respController := controller.NewResponsavelController(respUseCase)
 	simulacaoController := controller.NewSimulacaoController(simulacaoUseCase)
 
+	// Criando a instância do AuthController e passando a conexão do banco
+	authController := controller.NewAuthController(dbConnection)
+
 	// 6. Router
+	// Passando os controllers na mesma ordem definida na assinatura da função SetupRouter
 	server := router.SetupRouter(
 		reservatorioController,
 		planoAcaoController,
@@ -93,6 +93,7 @@ func main() {
 		usoController,
 		respController,
 		simulacaoController,
+		authController,
 	)
 
 	server.Run(":" + cfg.AppPort)

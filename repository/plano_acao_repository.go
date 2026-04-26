@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/guiezz/dashboard-api/model"
 	"gorm.io/gorm"
 )
@@ -36,6 +38,45 @@ func (r *PlanoAcaoRepository) Listar(reservatorioID int, situacao, estado, impac
 
 	result := query.Find(&planos)
 	return planos, result.Error
+}
+
+func (r *PlanoAcaoRepository) AtualizarStatus(acaoID uint, usuarioID uint, novaSituacao string) error {
+	// Inicia uma transação no banco de dados
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var plano model.PlanoAcao
+
+		// 1. Busca a ação atual para descobrir a Situação Anterior
+		if err := tx.First(&plano, acaoID).Error; err != nil {
+			return err
+		}
+
+		situacaoAnterior := plano.Situacao
+
+		// 2. Atualiza o status e a autoria no Plano de Ação
+		if err := tx.Model(&plano).Updates(map[string]interface{}{
+			"situacao":          novaSituacao,
+			"atualizado_por_id": usuarioID,
+			"updated_at":        time.Now(),
+		}).Error; err != nil {
+			return err
+		}
+
+		// 3. Cria o registro na tabela de histórico
+		historico := model.HistoricoAcao{
+			PlanoAcaoID:      acaoID,
+			UsuarioID:        usuarioID,
+			SituacaoAnterior: situacaoAnterior,
+			SituacaoNova:     novaSituacao,
+			DataAlteracao:    time.Now(),
+		}
+
+		if err := tx.Create(&historico).Error; err != nil {
+			return err
+		}
+
+		// Retornar nil confirma a transação
+		return nil
+	})
 }
 
 func (r *PlanoAcaoRepository) ObterFiltros(reservatorioID int) (*model.FiltrosPlanoAcao, error) {

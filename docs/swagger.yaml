@@ -1,5 +1,12 @@
 basePath: /api
 definitions:
+  controller.UpdateStatusRequest:
+    properties:
+      situacao:
+        type: string
+    required:
+    - situacao
+    type: object
   model.BalancoHidricoResumo:
     properties:
       balancoMensal:
@@ -84,6 +91,10 @@ definitions:
     properties:
       acoes:
         type: string
+      atualizado_por_id:
+        type: integer
+      autor:
+        $ref: '#/definitions/model.Usuario'
       classes_acao:
         type: string
       descricao_acao:
@@ -105,6 +116,8 @@ definitions:
       situacao:
         type: string
       tipos_impactos:
+        type: string
+      updated_at:
         type: string
     type: object
   model.PlanoAcaoResumo:
@@ -188,6 +201,21 @@ definitions:
       vazao_normal:
         type: number
     type: object
+  model.Usuario:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      nome:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    type: object
   simulador.SimAcude:
     properties:
       capacidade_m3:
@@ -252,7 +280,9 @@ definitions:
         type: number
       vertimento_hm3:
         type: number
-      volume_hm3:
+      volume_final_hm3:
+        type: number
+      volume_inicial_hm3:
         type: number
     type: object
 host: localhost:8000
@@ -350,6 +380,37 @@ paths:
               $ref: '#/definitions/model.PlanoAcao'
             type: array
       summary: Listar Planos de Ação (Com Filtros)
+      tags:
+      - Planos de Ação
+  /reservatorios/{reservatorioId}/action-plans/{acaoId}/status:
+    put:
+      consumes:
+      - application/json
+      description: Atualiza a situação de um plano de ação e gera log de auditoria
+      parameters:
+      - description: ID da Ação
+        in: path
+        name: acaoId
+        required: true
+        type: integer
+      - description: Novo Status
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/controller.UpdateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Atualiza Status da Ação
       tags:
       - Planos de Ação
   /reservatorios/{reservatorioId}/action-plans/filters:
