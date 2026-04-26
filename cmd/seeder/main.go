@@ -13,6 +13,7 @@ import (
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/model"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -43,6 +44,7 @@ func main() {
 		&model.Responsavel{},
 	)
 	fmt.Println("✅ Schema do banco atualizado!")
+	criarUsuarioAdmin(database)
 	fmt.Println("------------------------------------------------")
 
 	// 4. Caminho da pasta raiz e Processamento
@@ -62,6 +64,31 @@ func main() {
 	}
 }
 
+func criarUsuarioAdmin(db *gorm.DB) {
+	fmt.Println(">>> Verificando usuário administrador...")
+	senhaPlane := "cogerh123" // Senha padrão para testes
+
+	// Gera o hash da senha
+	hash, err := bcrypt.GenerateFromPassword([]byte(senhaPlane), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Erro ao gerar hash da senha: %v", err)
+	}
+
+	admin := model.Usuario{
+		Nome:      "Administrador Cogerh",
+		Email:     "admin@cogerh.gov.br",
+		SenhaHash: string(hash),
+		Role:      "admin_cogerh",
+	}
+
+	// FirstOrCreate verifica se o email já existe, se não, ele cria.
+	if result := db.Where(model.Usuario{Email: admin.Email}).FirstOrCreate(&admin); result.Error != nil {
+		log.Printf("⚠️ Erro ao criar usuário admin: %v", result.Error)
+	} else {
+		fmt.Printf("✅ Usuário admin pronto! Email: %s | Senha: %s\n", admin.Email, senhaPlane)
+	}
+}
+
 func limparBanco(db *gorm.DB) {
 	fmt.Println("!!! VERIFICANDO NECESSIDADE DE LIMPEZA !!!")
 
@@ -76,6 +103,8 @@ func limparBanco(db *gorm.DB) {
 	// O comando TRUNCATE limpa os dados e RESTART IDENTITY reseta os IDs para 1
 	err := db.Exec(`
 		TRUNCATE TABLE
+			usuarios,
+			historico_acoes,
 			reservatorio,
 			monitoramento,
 			uso_agua,

@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type PlanoAcao struct {
 	ID               uint   `gorm:"primaryKey" json:"id"`
 	ReservatorioID   uint   `json:"reservatorio_id"`
@@ -13,6 +15,10 @@ type PlanoAcao struct {
 	Situacao         string `json:"situacao"`
 	Indicadores      string `json:"indicadores"`
 	OrgaosEnvolvidos string `json:"orgaos_envolvidos"`
+
+	AtualizadoPorID *uint     `json:"atualizado_por_id"`
+	UsuarioAutor    *Usuario  `gorm:"foreignKey:AtualizadoPorID" json:"autor,omitempty"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 // TableName garante o mapeamento correto com a tabela criada pelo Python
