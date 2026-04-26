@@ -180,6 +180,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/reservatorios/{reservatorioId}/action-plans/{acaoId}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Atualiza a situação de um plano de ação e gera log de auditoria",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Planos de Ação"
+                ],
+                "summary": "Atualiza Status da Ação",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID da Ação",
+                        "name": "acaoId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Novo Status",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.UpdateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/reservatorios/{reservatorioId}/completed-actions": {
             "get": {
                 "description": "Lista planos de ação com situação 'Concluído'",
@@ -493,6 +542,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controller.UpdateStatusRequest": {
+            "type": "object",
+            "required": [
+                "situacao"
+            ],
+            "properties": {
+                "situacao": {
+                    "type": "string"
+                }
+            }
+        },
         "model.BalancoHidricoResumo": {
             "type": "object",
             "properties": {
@@ -618,6 +678,12 @@ const docTemplate = `{
                 "acoes": {
                     "type": "string"
                 },
+                "atualizado_por_id": {
+                    "type": "integer"
+                },
+                "autor": {
+                    "$ref": "#/definitions/model.Usuario"
+                },
                 "classes_acao": {
                     "type": "string"
                 },
@@ -649,6 +715,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "tipos_impactos": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -777,6 +846,29 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Usuario": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "nome": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "simulador.SimAcude": {
             "type": "object",
             "properties": {
@@ -869,7 +961,10 @@ const docTemplate = `{
                 "vertimento_hm3": {
                     "type": "number"
                 },
-                "volume_hm3": {
+                "volume_final_hm3": {
+                    "type": "number"
+                },
+                "volume_inicial_hm3": {
                     "type": "number"
                 }
             }

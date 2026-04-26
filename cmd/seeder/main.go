@@ -13,11 +13,11 @@ import (
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/model"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 func main() {
-	// 1. Carregar Configurações e Banco
 	conf := config.LoadConfig()
 	database, err := db.ConnectDB(conf)
 	if err != nil {
@@ -25,13 +25,17 @@ func main() {
 	}
 	fmt.Println("✅ Conexão com o banco de dados realizada com sucesso!")
 
-	// 2. LIMPEZA TOTAL (Se as tabelas existirem)
-	limparBanco(database)
+	ambiente := os.Getenv("APP_ENV")
+	if ambiente == "production" {
+		fmt.Println("⚠️ Ambiente de PRODUÇÃO detectado. A limpeza do banco (TRUNCATE) foi desabilitada para evitar perda de dados reais.")
+	} else {
+		limparBanco(database)
+	}
 
-	// 3. MIGRAR BANCO (Cria as tabelas se não existirem)
-	// Isso é essencial para não dar erro na hora de inserir os dados
 	fmt.Println(">>> Verificando e criando schema do banco...")
 	database.AutoMigrate(
+		&model.Usuario{},
+		&model.HistoricoAcao{},
 		&model.Reservatorio{},
 		&model.Monitoramento{},
 		&model.UsoAgua{},
@@ -43,9 +47,10 @@ func main() {
 		&model.Responsavel{},
 	)
 	fmt.Println("✅ Schema do banco atualizado!")
+
+	criarUsuarioAdmin(database)
 	fmt.Println("------------------------------------------------")
 
-	// 4. Caminho da pasta raiz e Processamento
 	rootPath := "./dados_importacao"
 
 	entries, err := os.ReadDir(rootPath)
@@ -62,10 +67,37 @@ func main() {
 	}
 }
 
+func criarUsuarioAdmin(db *gorm.DB) {
+	fmt.Println(">>> Verificando usuário administrador...")
+
+	senhaPlane := os.Getenv("ADMIN_PASSWORD")
+	if senhaPlane == "" {
+		senhaPlane = "cogerh123"
+		fmt.Println("⚠️ Variável ADMIN_PASSWORD não definida. Usando senha padrão.")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(senhaPlane), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Erro ao gerar hash da senha: %v", err)
+	}
+
+	admin := model.Usuario{
+		Nome:      "Administrador Cogerh",
+		Email:     "admin@cogerh.gov.br",
+		SenhaHash: string(hash),
+		Role:      "admin_cogerh",
+	}
+
+	if result := db.Where(model.Usuario{Email: admin.Email}).FirstOrCreate(&admin); result.Error != nil {
+		log.Printf("⚠️ Erro ao criar usuário admin: %v", result.Error)
+	} else {
+		fmt.Printf("✅ Usuário admin pronto! Email: %s\n", admin.Email)
+	}
+}
+
 func limparBanco(db *gorm.DB) {
 	fmt.Println("!!! VERIFICANDO NECESSIDADE DE LIMPEZA !!!")
 
-	// Verifica se a tabela principal existe antes de tentar limpar
 	if !db.Migrator().HasTable(&model.Reservatorio{}) {
 		fmt.Println("⚠️  Tabelas não encontradas. Pulando limpeza (provavelmente é a primeira execução).")
 		return
@@ -73,9 +105,10 @@ func limparBanco(db *gorm.DB) {
 
 	fmt.Println("!!! INICIANDO LIMPEZA TOTAL E RESET DE IDs !!!")
 
-	// O comando TRUNCATE limpa os dados e RESTART IDENTITY reseta os IDs para 1
 	err := db.Exec(`
 		TRUNCATE TABLE
+			usuarios,
+			historico_acoes,
 			reservatorio,
 			monitoramento,
 			uso_agua,
@@ -89,7 +122,6 @@ func limparBanco(db *gorm.DB) {
 	`).Error
 
 	if err != nil {
-		// Se der erro aqui, apenas logamos, mas não matamos o processo, pois pode ser algo menor
 		log.Printf("⚠️  Erro ao tentar limpar banco (pode ser ignorado se as tabelas estiverem vazias): %v", err)
 	} else {
 		fmt.Println("!!! BANCO LIMPO E IDs RESETADOS COM SUCESSO !!!")
@@ -97,7 +129,6 @@ func limparBanco(db *gorm.DB) {
 }
 
 func processarReservatorio(db *gorm.DB, folderPath string) {
-	// --- A. Processar Identificação ---
 	var reservatorio model.Reservatorio
 	var nome, municipio, descricao, nomeImg, nomeImgUsos, codigo string
 	var lat, long, capacidade float64
@@ -140,7 +171,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 	}
 	fmt.Printf("   -> ID: %d (%s)\n", reservatorio.ID, reservatorio.Nome)
 
-	// --- B. Monitoramento Histórico ---
 	var monitoramentos []model.Monitoramento
 	readExcel(folderPath, "monitoramento", "", func(row []string) {
 		if len(row) < 3 || strings.Contains(strings.ToLower(row[0]), "data") {
@@ -167,7 +197,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		fmt.Printf("      - %d monitoramentos importados.\n", len(monitoramentos))
 	}
 
-	// --- C. Composição Demanda ---
 	readExcel(folderPath, "balanco_hidrico", "Composi", func(row []string) {
 		if len(row) < 2 || strings.ToLower(row[0]) == "uso" {
 			return
@@ -181,7 +210,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- D. Oferta vs Demanda ---
 	readExcel(folderPath, "balanco_hidrico", "Oferta", func(row []string) {
 		if len(row) < 3 || strings.Contains(strings.ToLower(row[0]), "cenário") {
 			return
@@ -198,7 +226,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- E. Usos da Água ---
 	readExcel(folderPath, "usos_agua", "", func(row []string) {
 		if len(row) < 3 || strings.ToLower(row[0]) == "uso" {
 			return
@@ -215,7 +242,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- F. Balanço Hídrico ---
 	readExcel(folderPath, "balanco_hidrico", "Balan", func(row []string) {
 		if len(row) < 4 || strings.Contains(row[0], "Mês") {
 			return
@@ -234,13 +260,11 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- G. Volume Meta ---
 	readExcel(folderPath, "volume_meta", "", func(row []string) {
 		if len(row) < 4 || strings.Contains(row[0], "Mes_Num") {
 			return
 		}
 
-		// parseFloat corrigido já lida com % e divide por 100 se necessário
 		meta1, _ := parseFloat(row[1])
 		meta2, _ := parseFloat(row[2])
 		meta3, _ := parseFloat(row[3])
@@ -258,7 +282,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- H. Plano de Ação ---
 	readExcel(folderPath, "plano_acao", "", func(row []string) {
 		if len(row) < 8 || strings.Contains(row[0], "ESTADO") {
 			return
@@ -277,7 +300,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 
-	// --- I. Responsáveis ---
 	readExcel(folderPath, "responsaveis", "", func(row []string) {
 		if len(row) == 0 || strings.Contains(strings.ToLower(row[0]), "grupo") {
 			return
@@ -300,8 +322,6 @@ func processarReservatorio(db *gorm.DB, folderPath string) {
 		})
 	})
 }
-
-// --- Funções Auxiliares ---
 
 func readExcel(folder string, fileNamePart string, sheetNamePart string, processRow func([]string)) {
 	files, _ := os.ReadDir(folder)
