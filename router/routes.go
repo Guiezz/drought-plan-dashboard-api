@@ -64,6 +64,7 @@ func SetupRouter(
 			res.POST("/funceme-update", resCtrl.UpdateFuncemeData)
 
 			// Planos de Ação (Leitura Pública)
+			res.GET("/not-started-actions", planoCtrl.GetNotStartedActions)
 			res.GET("/ongoing-actions", planoCtrl.GetOngoingActions)
 			res.GET("/completed-actions", planoCtrl.GetCompletedActions)
 			res.GET("/action-plans", planoCtrl.GetActionPlans)

@@ -41,8 +41,17 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Set("usuario_id", uint(claims["usuario_id"].(float64)))
-			c.Set("role", claims["role"].(string))
+			// CONVERSÃO SEGURA: Evita Panic (erro 500) se o dado não for float64
+			idFloat, ok := claims["usuario_id"].(float64)
+			if !ok {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro interno: Formato do ID no token é inválido"})
+				c.Abort()
+				return
+			}
+			c.Set("usuario_id", uint(idFloat))
+
+			role, _ := claims["role"].(string)
+			c.Set("role", role)
 		} else {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token inválido"})
 			c.Abort()

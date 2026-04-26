@@ -4,7 +4,6 @@ import (
 	"github.com/guiezz/dashboard-api/model"
 )
 
-// Interface local para desacoplar do repositório concreto
 type PlanoAcaoRepositoryInterface interface {
 	Listar(reservatorioID int, situacao, estado, impacto, problema, acao string) ([]model.PlanoAcao, error)
 	ObterFiltros(reservatorioID int) (*model.FiltrosPlanoAcao, error)

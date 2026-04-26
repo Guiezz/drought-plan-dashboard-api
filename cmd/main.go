@@ -10,6 +10,7 @@ import (
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/internal/funceme"
+	"github.com/guiezz/dashboard-api/model"
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/router"
 	"github.com/guiezz/dashboard-api/usecase"
@@ -51,6 +52,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Erro ao conectar no banco: %v", err)
 	}
+
+	dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{})
 
 	// 2. Repositórios
 	reservatorioRepo := repository.NewReservatorioRepository(dbConnection)
