@@ -36,6 +36,15 @@ func (r *SimulacaoRepository) GetVazoes(acudeID, anoInicio, anoFim int) ([]simul
 	return vazoes, result.Error
 }
 
+// Busca vazões para anos específicos (útil para multi-cenário com anos não contínuos)
+func (r *SimulacaoRepository) GetVazoesByAnos(acudeID int, anos []int) ([]simulador.SimVazao, error) {
+	var vazoes []simulador.SimVazao
+	result := r.db.Where("acude_id = ? AND ano IN ?", acudeID, anos).
+		Order("ano asc").
+		Find(&vazoes)
+	return vazoes, result.Error
+}
+
 // Busca os dados de evaporação pelo ID da estação (que vem do cadastro do açude)
 func (r *SimulacaoRepository) GetEvaporacao(estacaoID int) (*simulador.SimEvaporacao, error) {
 	var evap simulador.SimEvaporacao

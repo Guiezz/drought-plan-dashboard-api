@@ -31,6 +31,18 @@ func (c *SimulacaoController) Simular(ctx *gin.Context) {
 		return
 	}
 
+	if len(req.Cenarios) > 0 {
+		// Modo multi-cenário
+		resultado, err := c.useCase.ExecutarMultiCenario(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, resultado)
+		return
+	}
+
+	// Modo single (comportamento original)
 	resultado, err := c.useCase.Executar(req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
