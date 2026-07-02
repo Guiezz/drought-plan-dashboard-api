@@ -52,6 +52,17 @@ func (r *SimulacaoRepository) GetEvaporacao(estacaoID int) (*simulador.SimEvapor
 	return &evap, result.Error
 }
 
+// Busca os anos distintos que possuem vazão cadastrada para um açude
+func (r *SimulacaoRepository) GetAnosVazoes(acudeID int) ([]int, error) {
+	var anos []int
+	result := r.db.Model(&simulador.SimVazao{}).
+		Select("DISTINCT ano").
+		Where("acude_id = ?", acudeID).
+		Order("ano asc").
+		Pluck("ano", &anos)
+	return anos, result.Error
+}
+
 // Lista todos os açudes disponíveis para simulação (para o dropdown do frontend)
 func (r *SimulacaoRepository) ListarAcudes() ([]simulador.SimAcude, error) {
 	var acudes []simulador.SimAcude

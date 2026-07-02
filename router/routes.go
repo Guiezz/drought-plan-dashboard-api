@@ -91,6 +91,7 @@ func SetupRouter(
 			{
 				sim.POST("/run", simCtrl.Simular)
 				sim.GET("/acudes", simCtrl.ListarAcudes)
+				sim.GET("/anos", simCtrl.ListarAnos)
 			}
 		}
 	}

@@ -137,6 +137,10 @@ func (u *SimulacaoUseCase) ListarOpcoes() ([]simulador.SimAcude, error) {
 	return u.repo.ListarAcudes()
 }
 
+func (u *SimulacaoUseCase) ListarAnos(reservatorioID int) ([]int, error) {
+	return u.repo.GetAnosVazoes(reservatorioID)
+}
+
 // ExecutarMultiCenario executa a simulação para múltiplos cenários históricos
 func (u *SimulacaoUseCase) ExecutarMultiCenario(req simulador.SimulacaoRequest) (*simulador.SimulacaoMultiResponse, error) {
 	// 1. Validar datas
