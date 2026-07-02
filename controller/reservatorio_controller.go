@@ -111,6 +111,24 @@ func (c *ReservatorioController) GetHistory(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, historico)
 }
 
+// GetGatilhosPGPS godoc
+// @Summary      Gatilhos do PGPS
+// @Description  Retorna os gatilhos mensais do PGPS (meta1v, meta2v, meta3v) em hm³ para cada mês
+// @Tags         Reservatórios
+// @Param        reservatorioId   path      int  true  "ID do Reservatório"
+// @Produce      json
+// @Success      200  {object}  model.GatilhosPGPSResponse
+// @Router       /reservatorios/{reservatorioId}/gatilhos-pgps [get]
+func (c *ReservatorioController) GetGatilhosPGPS(ctx *gin.Context) {
+	id := c.getIdParam(ctx)
+	dados, err := c.useCase.ObterGatilhosPGPS(id)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Dados não encontrados"})
+		return
+	}
+	ctx.JSON(http.StatusOK, dados)
+}
+
 // UpdateFuncemeData godoc
 // @Summary      Forçar Atualização Funceme
 // @Description  Busca dados novos na API da Funceme e salva no banco se houver novidades
