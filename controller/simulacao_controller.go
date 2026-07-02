@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -31,6 +32,18 @@ func (c *SimulacaoController) Simular(ctx *gin.Context) {
 		return
 	}
 
+	if len(req.Cenarios) > 0 {
+		// Modo multi-cenário
+		resultado, err := c.useCase.ExecutarMultiCenario(req)
+		if err != nil {
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(http.StatusOK, resultado)
+		return
+	}
+
+	// Modo single (comportamento original)
 	resultado, err := c.useCase.Executar(req)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -51,4 +64,42 @@ func (c *SimulacaoController) ListarAcudes(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, acudes)
+}
+
+// @Summary      Lista anos com vazão cadastrada para um açude
+// @Tags         Simulacao
+// @Param        reservatorio_id query int true "ID do reservatório"
+// @Success      200 {object} map[string][]int
+// @Router       /api/simulacao/anos [get]
+func (c *SimulacaoController) ListarAnos(ctx *gin.Context) {
+	reservatorioIDStr := ctx.Query("reservatorio_id")
+	if reservatorioIDStr == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "reservatorio_id é obrigatório"})
+		return
+	}
+
+	reservatorioID, err := parseIntSafe(reservatorioIDStr)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "reservatorio_id deve ser um número inteiro"})
+		return
+	}
+
+	anos, err := c.useCase.ListarAnos(reservatorioID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"anos": anos})
+}
+
+func parseIntSafe(s string) (int, error) {
+	var n int
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return 0, fmt.Errorf("não é um número")
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n, nil
 }

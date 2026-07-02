@@ -199,6 +199,37 @@ func (uc *ReservatorioUseCase) ObterHistoricoTabular(id int) ([]model.HistoricoT
 	return tabela, nil
 }
 
+func (uc *ReservatorioUseCase) ObterGatilhosPGPS(reservatorioID int) (*model.GatilhosPGPSResponse, error) {
+	res, err := uc.repo.GetReservatorioByID(reservatorioID)
+	if err != nil {
+		return nil, err
+	}
+
+	metas, err := uc.repo.GetMetas(reservatorioID)
+	if err != nil {
+		return nil, err
+	}
+
+	gatilhos := make([]model.GatilhoMensalPGPS, len(metas))
+	for i, m := range metas {
+		gatilhos[i] = model.GatilhoMensalPGPS{
+			MesNum:        m.MesNum,
+			MesNome:       m.MesNome,
+			SecaSeveraHm3: m.Meta1v * res.Capacidadehm3,
+			SecaHm3:       m.Meta2v * res.Capacidadehm3,
+			AlertaHm3:     m.Meta3v * res.Capacidadehm3,
+			NormalHm3:     res.Capacidadehm3,
+		}
+	}
+
+	return &model.GatilhosPGPSResponse{
+		ReservatorioID:   res.ID,
+		NomeReservatorio: res.Nome,
+		CapacidadeHm3:    res.Capacidadehm3,
+		Gatilhos:         gatilhos,
+	}, nil
+}
+
 func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, error) {
 	// 1. Busca dados do reservatório para pegar o Código FUNCEME
 	res, err := uc.repo.GetReservatorioByID(reservatorioID)

@@ -63,6 +63,9 @@ func SetupRouter(
 			// Atualização Manual
 			res.POST("/funceme-update", resCtrl.UpdateFuncemeData)
 
+			// Gatilhos do PGPS
+			res.GET("/gatilhos-pgps", resCtrl.GetGatilhosPGPS)
+
 			// Planos de Ação (Leitura Pública)
 			res.GET("/not-started-actions", planoCtrl.GetNotStartedActions)
 			res.GET("/ongoing-actions", planoCtrl.GetOngoingActions)
@@ -88,6 +91,7 @@ func SetupRouter(
 			{
 				sim.POST("/run", simCtrl.Simular)
 				sim.GET("/acudes", simCtrl.ListarAcudes)
+				sim.GET("/anos", simCtrl.ListarAnos)
 			}
 		}
 	}
