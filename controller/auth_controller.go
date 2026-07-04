@@ -11,15 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// Em um ambiente de produção real, essa chave deve vir do seu arquivo config/config.go (.env)
-var JwtSecret = []byte("chave_secreta_cogerh_mudar_em_prod")
-
 type AuthController struct {
-	DB *gorm.DB
+	DB        *gorm.DB
+	JwtSecret []byte
 }
 
-func NewAuthController(db *gorm.DB) *AuthController {
-	return &AuthController{DB: db}
+func NewAuthController(db *gorm.DB, jwtSecret []byte) *AuthController {
+	return &AuthController{DB: db, JwtSecret: jwtSecret}
 }
 
 type LoginRequest struct {
@@ -51,7 +49,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		"exp":        time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(JwtSecret)
+	tokenString, err := token.SignedString(ac.JwtSecret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao gerar token de acesso"})
 		return
