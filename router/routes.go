@@ -6,10 +6,15 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/controller"
-	"github.com/guiezz/dashboard-api/middleware" // Importação do middleware
+	"github.com/guiezz/dashboard-api/middleware"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+var (
+	loginLimiter    = middleware.NewRateLimiter(5, 1*time.Minute)
+	simulacaoLimiter = middleware.NewRateLimiter(10, 1*time.Minute)
 )
 
 func SetupRouter(
@@ -19,15 +24,14 @@ func SetupRouter(
 	usoCtrl *controller.UsoAguaController,
 	respCtrl *controller.ResponsavelController,
 	simCtrl *controller.SimulacaoController,
-	authCtrl *controller.AuthController, // Novo controller adicionado
+	authCtrl *controller.AuthController,
+	frontendURL string,
 ) *gin.Engine {
 	r := gin.Default()
 
 	// Cors
 	r.Use(cors.New(cors.Config{
-		AllowOriginFunc: func(origin string) bool {
-			return true
-		},
+		AllowOrigins: []string{frontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -45,8 +49,8 @@ func SetupRouter(
 
 	api := r.Group("/api")
 	{
-		// Rota pública de login
-		api.POST("/login", authCtrl.Login)
+		// Rota pública de login (com rate limit)
+		api.POST("/login", loginLimiter.Middleware(), authCtrl.Login)
 
 		api.GET("/reservatorios", resCtrl.GetReservatorios)
 
@@ -60,9 +64,6 @@ func SetupRouter(
 			res.GET("/history", resCtrl.GetHistory)
 			res.GET("/dashboard/volume-chart", resCtrl.GetChartVolumeData)
 
-			// Atualização Manual
-			res.POST("/funceme-update", resCtrl.UpdateFuncemeData)
-
 			// Gatilhos do PGPS
 			res.GET("/gatilhos-pgps", resCtrl.GetGatilhosPGPS)
 
@@ -75,7 +76,7 @@ func SetupRouter(
 
 			// Grupo Protegido para Edição de Planos de Ação
 			protectedRes := res.Group("/")
-			protectedRes.Use(middleware.AuthMiddleware())
+			protectedRes.Use(middleware.AuthMiddleware(authCtrl.JwtSecret))
 			{
 				// Iremos criar este endpoint no PlanoAcaoController a seguir
 				protectedRes.PUT("/action-plans/:acaoId/status", planoCtrl.UpdateStatus)
@@ -86,10 +87,10 @@ func SetupRouter(
 			res.GET("/water-uses", usoCtrl.GetUsos)
 			res.GET("/responsibles", respCtrl.GetResponsaveis)
 
-			// Simulação (Públicas)
+			// Simulação (Públicas, com rate limit no /run)
 			sim := api.Group("/simulacao")
 			{
-				sim.POST("/run", simCtrl.Simular)
+				sim.POST("/run", simulacaoLimiter.Middleware(), simCtrl.Simular)
 				sim.GET("/acudes", simCtrl.ListarAcudes)
 				sim.GET("/anos", simCtrl.ListarAnos)
 			}

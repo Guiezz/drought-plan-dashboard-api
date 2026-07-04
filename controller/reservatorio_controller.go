@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -30,7 +30,8 @@ func NewReservatorioController(useCase *usecase.ReservatorioUseCase) *Reservator
 func (c *ReservatorioController) GetReservatorios(ctx *gin.Context) {
 	reservatorios, err := c.useCase.ListarTodos()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar reservatórios", "details": err.Error()})
+		log.Printf("[ERRO] GetReservatorios: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao buscar reservatórios"})
 		return
 	}
 	ctx.JSON(http.StatusOK, reservatorios)
@@ -66,7 +67,8 @@ func (c *ReservatorioController) GetChartVolumeData(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 	dados, err := c.useCase.ObterDadosGrafico(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetChartVolumeData: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao carregar dados do gráfico"})
 		return
 	}
 	ctx.JSON(http.StatusOK, dados)
@@ -102,7 +104,8 @@ func (c *ReservatorioController) GetHistory(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 	historico, err := c.useCase.ObterHistoricoTabular(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetHistory: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao carregar histórico"})
 		return
 	}
 	if historico == nil {
@@ -129,31 +132,13 @@ func (c *ReservatorioController) GetGatilhosPGPS(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dados)
 }
 
-// UpdateFuncemeData godoc
-// @Summary      Forçar Atualização Funceme
-// @Description  Busca dados novos na API da Funceme e salva no banco se houver novidades
-// @Tags         Admin
-// @Param        reservatorioId   path      int  true  "ID do Reservatório"
-// @Produce      json
-// @Success      200  {object}  map[string]string
-// @Router       /reservatorios/{reservatorioId}/funceme-update [post]
-func (c *ReservatorioController) UpdateFuncemeData(ctx *gin.Context) {
-	id := c.getIdParam(ctx)
-	qtdNovos, err := c.useCase.AtualizarDadosFunceme(id)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if qtdNovos == 0 {
-		ctx.JSON(http.StatusOK, gin.H{"status": "O banco já está atualizado."})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"status": fmt.Sprintf("%d novos registros adicionados.", qtdNovos)})
-}
-
 // Helper interno (não exposto no Swagger)
 func (c *ReservatorioController) getIdParam(ctx *gin.Context) int {
 	idStr := ctx.Param("reservatorioId")
-	id, _ := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Printf("[AVISO] getIdParam: reservatorioId inválido: %q", idStr)
+		return 0
+	}
 	return id
 }
