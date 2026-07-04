@@ -15,13 +15,15 @@ type Service interface {
 }
 
 type funcemeService struct {
-	client *http.Client
+	client    *http.Client
+	baseURL   string
 }
 
 // NewFuncemeService cria uma nova instância do serviço com timeout configurado
-func NewFuncemeService() Service {
+func NewFuncemeService(baseURL string) Service {
 	return &funcemeService{
-		client: &http.Client{Timeout: 30 * time.Second},
+		client:  &http.Client{Timeout: 30 * time.Second},
+		baseURL: baseURL,
 	}
 }
 
@@ -30,8 +32,8 @@ func (s *funcemeService) BuscarSeriesHistoricas(codigoFunceme string, dataInicio
 	hoje := time.Now().Format("2006-01-02")
 
 	// Monta a URL
-	url := fmt.Sprintf("https://apil5.funceme.br/rpc/v1/reservatorio-series?reservatorio_id=%s&data_inicio=%s&data_fim=%s",
-		codigoFunceme, dataInicio, hoje)
+	url := fmt.Sprintf("%s?reservatorio_id=%s&data_inicio=%s&data_fim=%s",
+		s.baseURL, codigoFunceme, dataInicio, hoje)
 
 	// Faz a requisição
 	resp, err := s.client.Get(url)
