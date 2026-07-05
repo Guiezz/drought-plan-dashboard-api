@@ -1,11 +1,20 @@
 basePath: /api
 definitions:
-  controller.UpdateStatusRequest:
+  controller.BackfillRequest:
     properties:
-      situacao:
+      data_inicio:
         type: string
     required:
-    - situacao
+    - data_inicio
+    type: object
+  controller.BackfillResponse:
+    properties:
+      message:
+        example: Backfill concluído
+        type: string
+      registros:
+        example: 1250
+        type: integer
     type: object
   model.BalancoHidricoResumo:
     properties:
@@ -42,24 +51,33 @@ definitions:
       volumePercentual:
         type: number
     type: object
-  model.FiltrosPlanoAcao:
+  model.GatilhoMensalPGPS:
     properties:
-      acoes:
+      alerta_hm3:
+        type: number
+      mes_nome:
+        type: string
+      mes_num:
+        type: integer
+      normal_hm3:
+        type: number
+      seca_hm3:
+        type: number
+      seca_severa_hm3:
+        type: number
+    type: object
+  model.GatilhosPGPSResponse:
+    properties:
+      capacidade_hm3:
+        type: number
+      gatilhos:
         items:
-          type: string
+          $ref: '#/definitions/model.GatilhoMensalPGPS'
         type: array
-      estados:
-        items:
-          type: string
-        type: array
-      impactos:
-        items:
-          type: string
-        type: array
-      problemas:
-        items:
-          type: string
-        type: array
+      nome_reservatorio:
+        type: string
+      reservatorio_id:
+        type: integer
     type: object
   model.GraficoVolumeData:
     properties:
@@ -86,39 +104,6 @@ definitions:
       Volume (hm3):
         description: Com unidade e parênteses
         type: number
-    type: object
-  model.PlanoAcao:
-    properties:
-      acoes:
-        type: string
-      atualizado_por_id:
-        type: integer
-      autor:
-        $ref: '#/definitions/model.Usuario'
-      classes_acao:
-        type: string
-      descricao_acao:
-        type: string
-      estado_seca:
-        type: string
-      id:
-        type: integer
-      indicadores:
-        type: string
-      orgaos_envolvidos:
-        type: string
-      problemas:
-        type: string
-      reservatorio_id:
-        type: integer
-      responsaveis:
-        type: string
-      situacao:
-        type: string
-      tipos_impactos:
-        type: string
-      updated_at:
-        type: string
     type: object
   model.PlanoAcaoResumo:
     properties:
@@ -201,19 +186,15 @@ definitions:
       vazao_normal:
         type: number
     type: object
-  model.Usuario:
+  simulador.CenarioSimulacao:
     properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      id:
-        type: integer
+      anos:
+        description: '[1915] ou [2012,2013,2014,2015,2016,2017]'
+        items:
+          type: integer
+        type: array
       nome:
-        type: string
-      role:
-        type: string
-      updated_at:
+        description: '"Seca 1915", "2012-2017", etc.'
         type: string
     type: object
   simulador.SimAcude:
@@ -236,6 +217,11 @@ definitions:
     type: object
   simulador.SimulacaoRequest:
     properties:
+      cenarios:
+        description: 'Multi-cenário: se preenchido, executa simulação para cada cenário'
+        items:
+          $ref: '#/definitions/simulador.CenarioSimulacao'
+        type: array
       data_fim:
         type: string
       data_inicio:
@@ -308,6 +294,26 @@ paths:
       summary: Lista açudes disponíveis para simulação
       tags:
       - Simulacao
+  /api/simulacao/anos:
+    get:
+      parameters:
+      - description: ID do reservatório
+        in: query
+        name: reservatorio_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                type: integer
+              type: array
+            type: object
+      summary: Lista anos com vazão cadastrada para um açude
+      tags:
+      - Simulacao
   /api/simulacao/run:
     post:
       consumes:
@@ -345,115 +351,6 @@ paths:
       summary: Lista reservatórios
       tags:
       - Reservatórios
-  /reservatorios/{reservatorioId}/action-plans:
-    get:
-      description: Busca planos baseados nos filtros opcionais (query params)
-      parameters:
-      - description: ID do Reservatório
-        in: path
-        name: reservatorioId
-        required: true
-        type: integer
-      - description: 'Estado de Seca (ex: SECA, ALERTA)'
-        in: query
-        name: estado
-        type: string
-      - description: Tipo de Impacto
-        in: query
-        name: impacto
-        type: string
-      - description: Problema Identificado
-        in: query
-        name: problema
-        type: string
-      - description: Nome da Ação
-        in: query
-        name: acao
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.PlanoAcao'
-            type: array
-      summary: Listar Planos de Ação (Com Filtros)
-      tags:
-      - Planos de Ação
-  /reservatorios/{reservatorioId}/action-plans/{acaoId}/status:
-    put:
-      consumes:
-      - application/json
-      description: Atualiza a situação de um plano de ação e gera log de auditoria
-      parameters:
-      - description: ID da Ação
-        in: path
-        name: acaoId
-        required: true
-        type: integer
-      - description: Novo Status
-        in: body
-        name: status
-        required: true
-        schema:
-          $ref: '#/definitions/controller.UpdateStatusRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Atualiza Status da Ação
-      tags:
-      - Planos de Ação
-  /reservatorios/{reservatorioId}/action-plans/filters:
-    get:
-      description: Retorna as listas de valores únicos disponíveis para filtrar os
-        planos
-      parameters:
-      - description: ID do Reservatório
-        in: path
-        name: reservatorioId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.FiltrosPlanoAcao'
-      summary: Opções de Filtros
-      tags:
-      - Planos de Ação
-  /reservatorios/{reservatorioId}/completed-actions:
-    get:
-      description: Lista planos de ação com situação 'Concluído'
-      parameters:
-      - description: ID do Reservatório
-        in: path
-        name: reservatorioId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.PlanoAcao'
-            type: array
-      summary: Ações Concluídas
-      tags:
-      - Planos de Ação
   /reservatorios/{reservatorioId}/dashboard/summary:
     get:
       description: Retorna volume atual, status de seca e resumo de ações recomendadas
@@ -494,10 +391,64 @@ paths:
       summary: Dados do Gráfico de Volume
       tags:
       - Gráficos
-  /reservatorios/{reservatorioId}/funceme-update:
+  /reservatorios/{reservatorioId}/funceme-backfill:
     post:
-      description: Busca dados novos na API da Funceme e salva no banco se houver
-        novidades
+      consumes:
+      - application/json
+      description: Busca dados históricos de volume desde a data informada e insere
+        no banco, evitando duplicatas. Requer token de administrador.
+      parameters:
+      - description: ID do Reservatório
+        in: path
+        name: reservatorioId
+        required: true
+        type: integer
+      - description: Data de início no formato YYYY-MM-DD
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controller.BackfillRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.BackfillResponse'
+        "400":
+          description: data_inicio inválido ou ausente
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: token não fornecido
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: sem permissão
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: erro interno
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Backfill de dados históricos da FUNCEME
+      tags:
+      - Admin
+  /reservatorios/{reservatorioId}/gatilhos-pgps:
+    get:
+      description: Retorna os gatilhos mensais do PGPS (meta1v, meta2v, meta3v) em
+        hm³ para cada mês
       parameters:
       - description: ID do Reservatório
         in: path
@@ -510,12 +461,10 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Forçar Atualização Funceme
+            $ref: '#/definitions/model.GatilhosPGPSResponse'
+      summary: Gatilhos do PGPS
       tags:
-      - Admin
+      - Reservatórios
   /reservatorios/{reservatorioId}/history:
     get:
       description: Retorna tabela completa de monitoramento com status de seca calculado
@@ -556,27 +505,6 @@ paths:
       summary: Identificação e Localização
       tags:
       - Reservatórios
-  /reservatorios/{reservatorioId}/ongoing-actions:
-    get:
-      description: Lista planos de ação com situação 'Em andamento'
-      parameters:
-      - description: ID do Reservatório
-        in: path
-        name: reservatorioId
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.PlanoAcao'
-            type: array
-      summary: Ações em Andamento
-      tags:
-      - Planos de Ação
   /reservatorios/{reservatorioId}/responsibles:
     get:
       description: Lista as entidades e pessoas responsáveis pelo reservatório

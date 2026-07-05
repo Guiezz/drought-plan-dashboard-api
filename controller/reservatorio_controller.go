@@ -137,6 +137,26 @@ type BackfillRequest struct {
 	DataInicio string `json:"data_inicio" binding:"required"`
 }
 
+type BackfillResponse struct {
+	Message   string `json:"message" example:"Backfill concluído"`
+	Registros int    `json:"registros" example:"1250"`
+}
+
+// BackfillDados godoc
+// @Summary      Backfill de dados históricos da FUNCEME
+// @Description  Busca dados históricos de volume desde a data informada e insere no banco, evitando duplicatas. Requer token de administrador.
+// @Tags         Admin
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        reservatorioId path     int              true "ID do Reservatório"
+// @Param        request        body     BackfillRequest  true "Data de início no formato YYYY-MM-DD"
+// @Success      200            {object} BackfillResponse
+// @Failure      400            {object} map[string]string "data_inicio inválido ou ausente"
+// @Failure      401            {object} map[string]string "token não fornecido"
+// @Failure      403            {object} map[string]string "sem permissão"
+// @Failure      500            {object} map[string]string "erro interno"
+// @Router       /reservatorios/{reservatorioId}/funceme-backfill [post]
 func (c *ReservatorioController) BackfillDados(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 

@@ -38,6 +38,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/simulacao/anos": {
+            "get": {
+                "tags": [
+                    "Simulacao"
+                ],
+                "summary": "Lista anos com vazão cadastrada para um açude",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do reservatório",
+                        "name": "reservatorio_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/simulacao/run": {
             "post": {
                 "description": "Calcula o balanço hídrico mensal com base em dados históricos",
@@ -89,172 +120,6 @@ const docTemplate = `{
                             "type": "array",
                             "items": {
                                 "$ref": "#/definitions/model.Reservatorio"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/reservatorios/{reservatorioId}/action-plans": {
-            "get": {
-                "description": "Busca planos baseados nos filtros opcionais (query params)",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Planos de Ação"
-                ],
-                "summary": "Listar Planos de Ação (Com Filtros)",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID do Reservatório",
-                        "name": "reservatorioId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Estado de Seca (ex: SECA, ALERTA)",
-                        "name": "estado",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tipo de Impacto",
-                        "name": "impacto",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Problema Identificado",
-                        "name": "problema",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Nome da Ação",
-                        "name": "acao",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PlanoAcao"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/reservatorios/{reservatorioId}/action-plans/filters": {
-            "get": {
-                "description": "Retorna as listas de valores únicos disponíveis para filtrar os planos",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Planos de Ação"
-                ],
-                "summary": "Opções de Filtros",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID do Reservatório",
-                        "name": "reservatorioId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.FiltrosPlanoAcao"
-                        }
-                    }
-                }
-            }
-        },
-        "/reservatorios/{reservatorioId}/action-plans/{acaoId}/status": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Atualiza a situação de um plano de ação e gera log de auditoria",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Planos de Ação"
-                ],
-                "summary": "Atualiza Status da Ação",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID da Ação",
-                        "name": "acaoId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Novo Status",
-                        "name": "status",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controller.UpdateStatusRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/reservatorios/{reservatorioId}/completed-actions": {
-            "get": {
-                "description": "Lista planos de ação com situação 'Concluído'",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Planos de Ação"
-                ],
-                "summary": "Ações Concluídas",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID do Reservatório",
-                        "name": "reservatorioId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PlanoAcao"
                             }
                         }
                     }
@@ -322,16 +187,98 @@ const docTemplate = `{
                 }
             }
         },
-        "/reservatorios/{reservatorioId}/funceme-update": {
+        "/reservatorios/{reservatorioId}/funceme-backfill": {
             "post": {
-                "description": "Busca dados novos na API da Funceme e salva no banco se houver novidades",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Busca dados históricos de volume desde a data informada e insere no banco, evitando duplicatas. Requer token de administrador.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Forçar Atualização Funceme",
+                "summary": "Backfill de dados históricos da FUNCEME",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID do Reservatório",
+                        "name": "reservatorioId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data de início no formato YYYY-MM-DD",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controller.BackfillRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/controller.BackfillResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "data_inicio inválido ou ausente",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "token não fornecido",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "sem permissão",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "erro interno",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservatorios/{reservatorioId}/gatilhos-pgps": {
+            "get": {
+                "description": "Retorna os gatilhos mensais do PGPS (meta1v, meta2v, meta3v) em hm³ para cada mês",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reservatórios"
+                ],
+                "summary": "Gatilhos do PGPS",
                 "parameters": [
                     {
                         "type": "integer",
@@ -345,10 +292,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/model.GatilhosPGPSResponse"
                         }
                     }
                 }
@@ -410,38 +354,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.ReservatorioDetalhes"
-                        }
-                    }
-                }
-            }
-        },
-        "/reservatorios/{reservatorioId}/ongoing-actions": {
-            "get": {
-                "description": "Lista planos de ação com situação 'Em andamento'",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Planos de Ação"
-                ],
-                "summary": "Ações em Andamento",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "ID do Reservatório",
-                        "name": "reservatorioId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.PlanoAcao"
-                            }
                         }
                     }
                 }
@@ -542,14 +454,27 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controller.UpdateStatusRequest": {
+        "controller.BackfillRequest": {
             "type": "object",
             "required": [
-                "situacao"
+                "data_inicio"
             ],
             "properties": {
-                "situacao": {
+                "data_inicio": {
                     "type": "string"
+                }
+            }
+        },
+        "controller.BackfillResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Backfill concluído"
+                },
+                "registros": {
+                    "type": "integer",
+                    "example": 1250
                 }
             }
         },
@@ -605,32 +530,46 @@ const docTemplate = `{
                 }
             }
         },
-        "model.FiltrosPlanoAcao": {
+        "model.GatilhoMensalPGPS": {
             "type": "object",
             "properties": {
-                "acoes": {
+                "alerta_hm3": {
+                    "type": "number"
+                },
+                "mes_nome": {
+                    "type": "string"
+                },
+                "mes_num": {
+                    "type": "integer"
+                },
+                "normal_hm3": {
+                    "type": "number"
+                },
+                "seca_hm3": {
+                    "type": "number"
+                },
+                "seca_severa_hm3": {
+                    "type": "number"
+                }
+            }
+        },
+        "model.GatilhosPGPSResponse": {
+            "type": "object",
+            "properties": {
+                "capacidade_hm3": {
+                    "type": "number"
+                },
+                "gatilhos": {
                     "type": "array",
                     "items": {
-                        "type": "string"
+                        "$ref": "#/definitions/model.GatilhoMensalPGPS"
                     }
                 },
-                "estados": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "nome_reservatorio": {
+                    "type": "string"
                 },
-                "impactos": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "problemas": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "reservatorio_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -669,56 +608,6 @@ const docTemplate = `{
                 "Volume (hm3)": {
                     "description": "Com unidade e parênteses",
                     "type": "number"
-                }
-            }
-        },
-        "model.PlanoAcao": {
-            "type": "object",
-            "properties": {
-                "acoes": {
-                    "type": "string"
-                },
-                "atualizado_por_id": {
-                    "type": "integer"
-                },
-                "autor": {
-                    "$ref": "#/definitions/model.Usuario"
-                },
-                "classes_acao": {
-                    "type": "string"
-                },
-                "descricao_acao": {
-                    "type": "string"
-                },
-                "estado_seca": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "indicadores": {
-                    "type": "string"
-                },
-                "orgaos_envolvidos": {
-                    "type": "string"
-                },
-                "problemas": {
-                    "type": "string"
-                },
-                "reservatorio_id": {
-                    "type": "integer"
-                },
-                "responsaveis": {
-                    "type": "string"
-                },
-                "situacao": {
-                    "type": "string"
-                },
-                "tipos_impactos": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },
@@ -846,25 +735,18 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Usuario": {
+        "simulador.CenarioSimulacao": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
+                "anos": {
+                    "description": "[1915] ou [2012,2013,2014,2015,2016,2017]",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "nome": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                },
-                "updated_at": {
+                    "description": "\"Seca 1915\", \"2012-2017\", etc.",
                     "type": "string"
                 }
             }
@@ -897,6 +779,13 @@ const docTemplate = `{
         "simulador.SimulacaoRequest": {
             "type": "object",
             "properties": {
+                "cenarios": {
+                    "description": "Multi-cenário: se preenchido, executa simulação para cada cenário",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/simulador.CenarioSimulacao"
+                    }
+                },
                 "data_fim": {
                     "type": "string"
                 },
