@@ -2,6 +2,7 @@ package router
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -367,4 +368,69 @@ func TestE2E_CorsCheck_Api(t *testing.T) {
 	var resp map[string]interface{}
 	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Contains(t, resp["allowed_origins"], "http://localhost:3000")
+}
+
+func loginObterToken(t *testing.T, router *gin.Engine, email, senha string) string {
+	t.Helper()
+	w := httptest.NewRecorder()
+	body := fmt.Sprintf(`{"email":"%s","senha":"%s"}`, email, senha)
+	req, _ := http.NewRequest("POST", "/api/login", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+	require.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	return resp["token"].(string)
+}
+
+func TestE2E_BackfillFunceme_SemToken(t *testing.T) {
+	router, db, _ := setupE2E(t)
+	db.Create(&model.Reservatorio{Nome: "Teste", Capacidadehm3: 100, CodigoFunceme: "123"})
+
+	w := httptest.NewRecorder()
+	body := `{"data_inicio":"2020-01-01"}`
+	req, _ := http.NewRequest("POST", "/api/reservatorios/1/funceme-backfill", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestE2E_BackfillFunceme_UsuarioComum(t *testing.T) {
+	router, db, _ := setupE2E(t)
+	db.Create(&model.Reservatorio{Nome: "Teste", Capacidadehm3: 100, CodigoFunceme: "123"})
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("senha123"), bcrypt.DefaultCost)
+	db.Create(&model.Usuario{Nome: "Usuario", Email: "user@test.com", SenhaHash: string(hash), Role: "cogerh"})
+
+	token := loginObterToken(t, router, "user@test.com", "senha123")
+
+	w := httptest.NewRecorder()
+	body := `{"data_inicio":"2020-01-01"}`
+	req, _ := http.NewRequest("POST", "/api/reservatorios/1/funceme-backfill", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+}
+
+func TestE2E_BackfillFunceme_Admin(t *testing.T) {
+	router, db, _ := setupE2E(t)
+	db.Create(&model.Reservatorio{Nome: "Teste", Capacidadehm3: 100, CodigoFunceme: "123"})
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte("senha123"), bcrypt.DefaultCost)
+	db.Create(&model.Usuario{Nome: "Admin", Email: "admin@test.com", SenhaHash: string(hash), Role: "admin_cogerh"})
+
+	token := loginObterToken(t, router, "admin@test.com", "senha123")
+
+	w := httptest.NewRecorder()
+	body := `{"data_inicio":"2020-01-01"}`
+	req, _ := http.NewRequest("POST", "/api/reservatorios/1/funceme-backfill", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	router.ServeHTTP(w, req)
+
+	assert.NotEqual(t, http.StatusUnauthorized, w.Code, "admin não deve receber 401")
+	assert.NotEqual(t, http.StatusForbidden, w.Code, "admin não deve receber 403")
 }

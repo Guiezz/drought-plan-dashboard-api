@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/model"
@@ -130,6 +131,40 @@ func (c *ReservatorioController) GetGatilhosPGPS(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, dados)
+}
+
+type BackfillRequest struct {
+	DataInicio string `json:"data_inicio" binding:"required"`
+}
+
+func (c *ReservatorioController) BackfillDados(ctx *gin.Context) {
+	id := c.getIdParam(ctx)
+
+	var req BackfillRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Campo 'data_inicio' é obrigatório (formato YYYY-MM-DD)"})
+		return
+	}
+
+	if _, err := time.Parse("2006-01-02", req.DataInicio); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Formato de data inválido. Use YYYY-MM-DD"})
+		return
+	}
+
+	role, _ := ctx.Get("role")
+	log.Printf("[INFO] Backfill solicitado para reservatório %d desde %s pelo usuário com role: %v", id, req.DataInicio, role)
+
+	novosRegistros, err := c.useCase.BackfillFunceme(uint(id), req.DataInicio)
+	if err != nil {
+		log.Printf("[ERRO] BackfillFunceme: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao realizar backfill"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message":   "Backfill concluído",
+		"registros": novosRegistros,
+	})
 }
 
 // Helper interno (não exposto no Swagger)
