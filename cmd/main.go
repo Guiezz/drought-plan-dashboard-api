@@ -111,7 +111,7 @@ func main() {
 		respController,
 		simulacaoController,
 		authController,
-		cfg.FrontendURL,
+		cfg.FrontendURLs,
 		loginLimiter,
 		simulacaoLimiter,
 	)

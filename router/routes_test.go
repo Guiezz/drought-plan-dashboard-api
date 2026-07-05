@@ -89,7 +89,7 @@ func setupE2E(t *testing.T) (*gin.Engine, *gorm.DB, []byte) {
 		respController,
 		simulacaoController,
 		authController,
-		"http://localhost:3000",
+		[]string{"http://localhost:3000"},
 		loginLimiter,
 		simulacaoLimiter,
 	)

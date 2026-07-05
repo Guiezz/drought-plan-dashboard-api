@@ -11,16 +11,16 @@ import (
 
 // Config armazena todas as variáveis de ambiente necessárias
 type Config struct {
-	DBHost     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBPort     string
-	AppPort    string
-	DBSSLMode  string
-	JWTSecret  string
+	DBHost      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBPort      string
+	AppPort     string
+	DBSSLMode   string
+	JWTSecret   string
 	FuncemeAPIURL string
-	FrontendURL   string
+	FrontendURLs  []string
 }
 
 // LoadConfig carrega as configurações do arquivo .env ou do ambiente do sistema.
@@ -43,7 +43,7 @@ func LoadConfig() *Config {
 		DBSSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
 		JWTSecret:  getEnv("JWT_SECRET", ""),
 		FuncemeAPIURL: getEnv("FUNCEME_API_URL", "https://apil5.funceme.br/rpc/v1/reservatorio-series"),
-		FrontendURL:   getEnv("FRONTEND_URL", "http://localhost:3000"),
+		FrontendURLs:  parseOrigins(getEnv("FRONTEND_URL", "http://localhost:3000")),
 	}
 }
 
@@ -59,4 +59,17 @@ func getEnv(key, fallback string) string {
 		return strings.TrimSpace(value)
 	}
 	return fallback
+}
+
+// parseOrigins divide um string separada por vírgulas em um slice de origens CORS.
+func parseOrigins(value string) []string {
+	parts := strings.Split(value, ",")
+	origins := make([]string, 0, len(parts))
+	for _, p := range parts {
+		trimmed := strings.TrimSpace(p)
+		if trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+	return origins
 }

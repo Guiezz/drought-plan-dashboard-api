@@ -18,14 +18,14 @@ func SetupRouter(
 	respCtrl *controller.ResponsavelController,
 	simCtrl *controller.SimulacaoController,
 	authCtrl *controller.AuthController,
-	frontendURL string,
+	frontendURLs []string,
 	loginLimiter, simulacaoLimiter *middleware.RateLimiter,
 ) *gin.Engine {
 	r := gin.Default()
 
 	// Cors
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{frontendURL},
+		AllowOrigins: frontendURLs,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
