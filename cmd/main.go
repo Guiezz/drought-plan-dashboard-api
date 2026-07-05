@@ -94,6 +94,7 @@ func main() {
 	usoController := controller.NewUsoAguaController(usoUseCase)
 	respController := controller.NewResponsavelController(respUseCase)
 	simulacaoController := controller.NewSimulacaoController(simulacaoUseCase)
+	corsController := controller.NewCorsController(cfg.FrontendURLs)
 
 	// Criando a instância do AuthController e passando a conexão do banco + chave JWT
 	authController := controller.NewAuthController(dbConnection, []byte(cfg.JWTSecret))
@@ -111,7 +112,8 @@ func main() {
 		respController,
 		simulacaoController,
 		authController,
-		cfg.FrontendURL,
+		corsController,
+		cfg.FrontendURLs,
 		loginLimiter,
 		simulacaoLimiter,
 	)

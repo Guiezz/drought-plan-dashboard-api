@@ -18,20 +18,24 @@ func SetupRouter(
 	respCtrl *controller.ResponsavelController,
 	simCtrl *controller.SimulacaoController,
 	authCtrl *controller.AuthController,
-	frontendURL string,
+	corsCtrl *controller.CorsController,
+	frontendURLs []string,
 	loginLimiter, simulacaoLimiter *middleware.RateLimiter,
 ) *gin.Engine {
 	r := gin.Default()
 
 	// Cors
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{frontendURL},
+		AllowOrigins: frontendURLs,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Rota de diagnóstico CORS (fora do /api, sem bloqueio CORS — útil para curl/Postman)
+	r.GET("/cors-check", corsCtrl.CheckCORS)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong!"})
@@ -66,6 +70,9 @@ func SetupRouter(
 	{
 		// Rota pública de login (com rate limit)
 		api.POST("/login", loginLimiter.Middleware(), authCtrl.Login)
+
+		// Diagnóstico CORS (dentro do /api, respeita as regras de CORS)
+		api.GET("/cors-check", corsCtrl.CheckCORS)
 
 		api.GET("/reservatorios", resCtrl.GetReservatorios)
 

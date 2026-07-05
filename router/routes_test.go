@@ -81,6 +81,9 @@ func setupE2E(t *testing.T) (*gin.Engine, *gorm.DB, []byte) {
 	loginLimiter := middleware.NewRateLimiter(100, 1*time.Minute)
 	simulacaoLimiter := middleware.NewRateLimiter(100, 1*time.Minute)
 
+	frontendURLs := []string{"http://localhost:3000"}
+	corsCtrl := controller.NewCorsController(frontendURLs)
+
 	router := SetupRouter(
 		reservatorioController,
 		planoAcaoController,
@@ -89,7 +92,8 @@ func setupE2E(t *testing.T) (*gin.Engine, *gorm.DB, []byte) {
 		respController,
 		simulacaoController,
 		authController,
-		"http://localhost:3000",
+		corsCtrl,
+		frontendURLs,
 		loginLimiter,
 		simulacaoLimiter,
 	)
@@ -319,4 +323,48 @@ func TestE2E_LoginJSONInvalido(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestE2E_CorsCheck_Livre(t *testing.T) {
+	router, _, _ := setupE2E(t)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/cors-check", nil)
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Contains(t, resp["allowed_origins"], "http://localhost:3000")
+	assert.Equal(t, "", resp["request_origin"])
+}
+
+func TestE2E_CorsCheck_ComOrigin(t *testing.T) {
+	router, _, _ := setupE2E(t)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/cors-check", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	req.Header.Set("Host", "test.com")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Contains(t, resp["allowed_origins"], "http://localhost:3000")
+	assert.Equal(t, "http://localhost:3000", resp["request_origin"])
+}
+
+func TestE2E_CorsCheck_Api(t *testing.T) {
+	router, _, _ := setupE2E(t)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/cors-check", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp map[string]interface{}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	assert.Contains(t, resp["allowed_origins"], "http://localhost:3000")
 }
