@@ -8,15 +8,24 @@ import (
 
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/model/simulador"
-	"github.com/guiezz/dashboard-api/repository"
 )
 
+type SimulacaoRepositoryInterface interface {
+	GetAcude(cod int) (*simulador.SimAcude, error)
+	GetCAV(acudeID int) ([]simulador.SimCAV, error)
+	GetEvaporacao(estacaoID int) (*simulador.SimEvaporacao, error)
+	GetVazoes(acudeID, anoInicio, anoFim int) ([]simulador.SimVazao, error)
+	GetVazoesByAnos(acudeID int, anos []int) ([]simulador.SimVazao, error)
+	GetAnosVazoes(acudeID int) ([]int, error)
+	ListarAcudes() ([]simulador.SimAcude, error)
+}
+
 type SimulacaoUseCase struct {
-	repo *repository.SimulacaoRepository
+	repo SimulacaoRepositoryInterface
 	calc *calculator.SimuladorHidrico
 }
 
-func NewSimulacaoUseCase(repo *repository.SimulacaoRepository, calc *calculator.SimuladorHidrico) *SimulacaoUseCase {
+func NewSimulacaoUseCase(repo SimulacaoRepositoryInterface, calc *calculator.SimuladorHidrico) *SimulacaoUseCase {
 	return &SimulacaoUseCase{
 		repo: repo,
 		calc: calc,

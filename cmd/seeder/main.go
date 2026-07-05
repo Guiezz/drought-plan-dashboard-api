@@ -29,7 +29,14 @@ func main() {
 	if ambiente == "production" {
 		fmt.Println("⚠️ Ambiente de PRODUÇÃO detectado. A limpeza do banco (TRUNCATE) foi desabilitada para evitar perda de dados reais.")
 	} else {
-		limparBanco(database)
+		fmt.Print("⚠️ Isso irá LIMPAR TODOS OS DADOS do banco. Deseja continuar? (s/N): ")
+		var resposta string
+		fmt.Scanln(&resposta)
+		if resposta == "s" || resposta == "S" {
+			limparBanco(database)
+		} else {
+			fmt.Println("❌ Limpeza cancelada pelo usuário.")
+		}
 	}
 
 	fmt.Println(">>> Verificando e criando schema do banco...")

@@ -3,6 +3,7 @@ package usecase
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/internal/funceme"
@@ -39,6 +40,18 @@ func NewReservatorioUseCase(repo ReservatorioRepositoryInterface, planoRepo Plan
 
 func (uc *ReservatorioUseCase) ListarTodos() ([]model.Reservatorio, error) {
 	return uc.repo.GetReservatorios()
+}
+
+func (uc *ReservatorioUseCase) ListReservoirIDs() ([]uint, error) {
+	reservatorios, err := uc.repo.GetReservatorios()
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]uint, len(reservatorios))
+	for i, r := range reservatorios {
+		ids[i] = r.ID
+	}
+	return ids, nil
 }
 
 func (uc *ReservatorioUseCase) ObterResumoDashboard(reservatorioID int) (*model.DashboardResumo, error) {
@@ -230,9 +243,9 @@ func (uc *ReservatorioUseCase) ObterGatilhosPGPS(reservatorioID int) (*model.Gat
 	}, nil
 }
 
-func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, error) {
+func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID uint) (int, error) {
 	// 1. Busca dados do reservatório para pegar o Código FUNCEME
-	res, err := uc.repo.GetReservatorioByID(reservatorioID)
+	res, err := uc.repo.GetReservatorioByID(int(reservatorioID))
 	if err != nil {
 		return 0, err
 	}
@@ -241,8 +254,9 @@ func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, e
 	}
 
 	// 2. Busca dados na API externa usando o serviço dedicado
-	// Definimos uma data de início fixa conforme sua lógica original
-	novosDados, err := uc.funcemeSvc.BuscarSeriesHistoricas(res.CodigoFunceme, "2023-01-01")
+	// Busca apenas o mês atual para reduzir custo computacional
+	dataInicio := time.Now().AddDate(0, -1, 0).Format("2006-01-02")
+	novosDados, err := uc.funcemeSvc.BuscarSeriesHistoricas(res.CodigoFunceme, dataInicio)
 	if err != nil {
 		return 0, err
 	}
@@ -252,7 +266,7 @@ func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, e
 	}
 
 	// 3. Busca datas existentes no banco para filtrar duplicatas
-	datasExistentes, err := uc.repo.GetDatasMonitoramento(reservatorioID)
+	datasExistentes, err := uc.repo.GetDatasMonitoramento(int(reservatorioID))
 	if err != nil {
 		return 0, err
 	}
@@ -264,8 +278,7 @@ func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID int) (int, e
 
 		// Se não existe no mapa, adiciona
 		if !datasExistentes[dataKey] {
-			// Atribui o ID do reservatório que o serviço externo desconhece
-			m.ReservatorioID = uint(reservatorioID)
+			m.ReservatorioID = reservatorioID
 			registrosParaSalvar = append(registrosParaSalvar, m)
 		}
 	}

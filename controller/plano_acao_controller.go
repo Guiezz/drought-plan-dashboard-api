@@ -23,7 +23,8 @@ func (c *PlanoAcaoController) GetNotStartedActions(ctx *gin.Context) {
 	estado := ctx.Query("estado") // Captura o filtro do estado de seca
 	acoes, err := c.useCase.Listar(id, "Não iniciado", estado, "", "", "")
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetNotStartedActions: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar ações"})
 		return
 	}
 	ctx.JSON(http.StatusOK, acoes)
@@ -34,7 +35,8 @@ func (c *PlanoAcaoController) GetOngoingActions(ctx *gin.Context) {
 	estado := ctx.Query("estado") // Captura o filtro do estado de seca
 	acoes, err := c.useCase.Listar(id, "Em andamento", estado, "", "", "")
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetOngoingActions: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar ações"})
 		return
 	}
 	ctx.JSON(http.StatusOK, acoes)
@@ -45,7 +47,8 @@ func (c *PlanoAcaoController) GetCompletedActions(ctx *gin.Context) {
 	estado := ctx.Query("estado") // Captura o filtro do estado de seca
 	acoes, err := c.useCase.Listar(id, "Concluído", estado, "", "", "")
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetCompletedActions: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar ações"})
 		return
 	}
 	ctx.JSON(http.StatusOK, acoes)
@@ -60,7 +63,8 @@ func (c *PlanoAcaoController) GetActionPlans(ctx *gin.Context) {
 
 	planos, err := c.useCase.Listar(id, "", estado, impacto, problema, acao)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetActionPlans: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar planos de ação"})
 		return
 	}
 	ctx.JSON(http.StatusOK, planos)
@@ -70,7 +74,8 @@ func (c *PlanoAcaoController) GetActionPlanFilters(ctx *gin.Context) {
 	id := c.getIdParam(ctx)
 	filtros, err := c.useCase.ObterFiltros(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] GetActionPlanFilters: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao carregar filtros"})
 		return
 	}
 	ctx.JSON(http.StatusOK, filtros)
@@ -115,7 +120,7 @@ func (c *PlanoAcaoController) UpdateStatus(ctx *gin.Context) {
 
 	if err := c.useCase.AtualizarStatus(uint(acaoId), usuarioId, req.Situacao); err != nil {
 		log.Printf("[ERRO Controller] UseCase retornou erro: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar o status: " + err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar o status"})
 		return
 	}
 
@@ -124,6 +129,10 @@ func (c *PlanoAcaoController) UpdateStatus(ctx *gin.Context) {
 
 func (c *PlanoAcaoController) getIdParam(ctx *gin.Context) int {
 	idStr := ctx.Param("reservatorioId")
-	id, _ := strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		log.Printf("[AVISO] getIdParam: reservatorioId inválido: %q", idStr)
+		return 0
+	}
 	return id
 }

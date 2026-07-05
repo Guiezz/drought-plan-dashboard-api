@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/guiezz/dashboard-api/config"
 	"github.com/guiezz/dashboard-api/controller"
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/internal/funceme"
+	"github.com/guiezz/dashboard-api/internal/scheduler"
+	"github.com/guiezz/dashboard-api/middleware"
 	"github.com/guiezz/dashboard-api/model"
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/router"
@@ -53,7 +60,9 @@ func main() {
 		log.Fatalf("Erro ao conectar no banco: %v", err)
 	}
 
-	dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{})
+	if os.Getenv("APP_ENV") != "production" {
+		dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{})
+	}
 
 	// 2. Repositórios
 	reservatorioRepo := repository.NewReservatorioRepository(dbConnection)
@@ -65,7 +74,7 @@ func main() {
 
 	// 3. Serviços Internos
 	secaCalc := calculator.NewSecaCalculator()
-	funcemeSvc := funceme.NewFuncemeService()
+	funcemeSvc := funceme.NewFuncemeService(cfg.FuncemeAPIURL)
 	simulacaoCalc := calculator.NewSimuladorHidrico()
 
 	// 4. UseCases
@@ -84,11 +93,14 @@ func main() {
 	respController := controller.NewResponsavelController(respUseCase)
 	simulacaoController := controller.NewSimulacaoController(simulacaoUseCase)
 
-	// Criando a instância do AuthController e passando a conexão do banco
-	authController := controller.NewAuthController(dbConnection)
+	// Criando a instância do AuthController e passando a conexão do banco + chave JWT
+	authController := controller.NewAuthController(dbConnection, []byte(cfg.JWTSecret))
 
-	// 6. Router
-	// Passando os controllers na mesma ordem definida na assinatura da função SetupRouter
+	// 6. Rate Limiters
+	loginLimiter := middleware.NewRateLimiter(5, 1*time.Minute)
+	simulacaoLimiter := middleware.NewRateLimiter(10, 1*time.Minute)
+
+	// 7. Router
 	server := router.SetupRouter(
 		reservatorioController,
 		planoAcaoController,
@@ -97,7 +109,44 @@ func main() {
 		respController,
 		simulacaoController,
 		authController,
+		cfg.FrontendURL,
+		loginLimiter,
+		simulacaoLimiter,
 	)
 
-	server.Run(":" + cfg.AppPort)
+	// 7. Scheduler automático da Funceme (executa a cada 24h)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if cfg.JWTSecret != "" {
+		scheduler.Start(ctx, 24*time.Hour, 10*time.Second, 2*time.Second,
+			reservatorioUseCase.ListReservoirIDs,
+			reservatorioUseCase.AtualizarDadosFunceme,
+		)
+	}
+
+	// 8. Servidor HTTP com graceful shutdown
+	srv := &http.Server{
+		Addr:    ":" + cfg.AppPort,
+		Handler: server,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Erro ao iniciar servidor: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Desligando servidor...")
+
+	cancel()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Fatalf("Erro ao desligar servidor: %v", err)
+	}
 }

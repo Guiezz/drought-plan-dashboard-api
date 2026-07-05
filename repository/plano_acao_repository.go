@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"log" // Novo import
 	"time"
 
 	"github.com/guiezz/dashboard-api/model"
@@ -62,32 +61,23 @@ func (r *PlanoAcaoRepository) ObterFiltros(reservatorioID int) (*model.FiltrosPl
 }
 
 func (r *PlanoAcaoRepository) AtualizarStatus(acaoID uint, usuarioID uint, novaSituacao string) error {
-	log.Printf(">>> INICIANDO TRANSAÇÃO PARA AÇÃO %d", acaoID)
-
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var plano model.PlanoAcao
 
-		// PASSO 1: Buscar ação existente
 		if err := tx.First(&plano, acaoID).Error; err != nil {
-			log.Printf("[ERRO DB] Falha ao encontrar a ação ID %d: %v", acaoID, err)
 			return err
 		}
 
 		situacaoAnterior := plano.Situacao
-		log.Printf("Ação encontrada. Trocando status de '%s' para '%s'", situacaoAnterior, novaSituacao)
 
-		// PASSO 2: Atualizar tabela plano_acao
 		if err := tx.Model(&plano).Updates(map[string]interface{}{
 			"situacao":          novaSituacao,
 			"atualizado_por_id": usuarioID,
 			"updated_at":        time.Now(),
 		}).Error; err != nil {
-			log.Printf("[ERRO DB] Falha no UPDATE da tabela plano_acao: %v", err)
 			return err
 		}
-		log.Println("Tabela plano_acao atualizada com sucesso.")
 
-		// PASSO 3: Inserir log na tabela historico_acoes
 		historico := model.HistoricoAcao{
 			PlanoAcaoID:      acaoID,
 			UsuarioID:        usuarioID,
@@ -97,11 +87,9 @@ func (r *PlanoAcaoRepository) AtualizarStatus(acaoID uint, usuarioID uint, novaS
 		}
 
 		if err := tx.Create(&historico).Error; err != nil {
-			log.Printf("[ERRO DB] Falha no INSERT da tabela historico_acoes: %v", err)
 			return err
 		}
 
-		log.Println("<<< TRANSAÇÃO CONCLUÍDA COM SUCESSO")
 		return nil
 	})
 }

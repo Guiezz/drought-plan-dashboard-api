@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,7 +37,8 @@ func (c *SimulacaoController) Simular(ctx *gin.Context) {
 		// Modo multi-cenário
 		resultado, err := c.useCase.ExecutarMultiCenario(req)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERRO] Simular (multi-cenário): %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao executar simulação"})
 			return
 		}
 		ctx.JSON(http.StatusOK, resultado)
@@ -46,7 +48,8 @@ func (c *SimulacaoController) Simular(ctx *gin.Context) {
 	// Modo single (comportamento original)
 	resultado, err := c.useCase.Executar(req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] Simular: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao executar simulação"})
 		return
 	}
 
@@ -60,7 +63,8 @@ func (c *SimulacaoController) Simular(ctx *gin.Context) {
 func (c *SimulacaoController) ListarAcudes(ctx *gin.Context) {
 	acudes, err := c.useCase.ListarOpcoes()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] ListarAcudes: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar açudes"})
 		return
 	}
 	ctx.JSON(http.StatusOK, acudes)
@@ -86,7 +90,8 @@ func (c *SimulacaoController) ListarAnos(ctx *gin.Context) {
 
 	anos, err := c.useCase.ListarAnos(reservatorioID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERRO] ListarAnos: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Erro ao listar anos"})
 		return
 	}
 

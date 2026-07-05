@@ -18,8 +18,9 @@ type Config struct {
 	DBPort     string
 	AppPort    string
 	DBSSLMode  string
-	// Se você tiver uma URL para a API Funceme, adicione aqui:
-	// FuncemeAPIURL string
+	JWTSecret  string
+	FuncemeAPIURL string
+	FrontendURL   string
 }
 
 // LoadConfig carrega as configurações do arquivo .env ou do ambiente do sistema.
@@ -40,7 +41,9 @@ func LoadConfig() *Config {
 		DBPort:     getEnv("POSTGRES_PORT", "5432"),
 		AppPort:    getEnv("PORT", "8000"),
 		DBSSLMode:  getEnv("POSTGRES_SSLMODE", "disable"),
-		// FuncemeAPIURL: getEnv("FUNCEME_API_URL", "http://api.funceme.br/v1/"),
+		JWTSecret:  getEnv("JWT_SECRET", ""),
+		FuncemeAPIURL: getEnv("FUNCEME_API_URL", "https://apil5.funceme.br/rpc/v1/reservatorio-series"),
+		FrontendURL:   getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 }
 
