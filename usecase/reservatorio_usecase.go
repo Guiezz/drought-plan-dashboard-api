@@ -292,3 +292,44 @@ func (uc *ReservatorioUseCase) AtualizarDadosFunceme(reservatorioID uint) (int, 
 
 	return len(registrosParaSalvar), nil
 }
+
+func (uc *ReservatorioUseCase) BackfillFunceme(reservatorioID uint, dataInicio string) (int, error) {
+	res, err := uc.repo.GetReservatorioByID(int(reservatorioID))
+	if err != nil {
+		return 0, err
+	}
+	if res.CodigoFunceme == "" {
+		return 0, fmt.Errorf("reservatório sem código FUNCEME cadastrado")
+	}
+
+	novosDados, err := uc.funcemeSvc.BuscarSeriesHistoricas(res.CodigoFunceme, dataInicio)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(novosDados) == 0 {
+		return 0, nil
+	}
+
+	datasExistentes, err := uc.repo.GetDatasMonitoramento(int(reservatorioID))
+	if err != nil {
+		return 0, err
+	}
+
+	var registrosParaSalvar []model.Monitoramento
+	for _, m := range novosDados {
+		dataKey := m.Data.Format("2006-01-02")
+		if !datasExistentes[dataKey] {
+			m.ReservatorioID = reservatorioID
+			registrosParaSalvar = append(registrosParaSalvar, m)
+		}
+	}
+
+	if len(registrosParaSalvar) > 0 {
+		if err := uc.repo.SalvarMonitoramentos(registrosParaSalvar); err != nil {
+			return 0, err
+		}
+	}
+
+	return len(registrosParaSalvar), nil
+}

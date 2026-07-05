@@ -100,8 +100,15 @@ func SetupRouter(
 			protectedRes := res.Group("/")
 			protectedRes.Use(middleware.AuthMiddleware(authCtrl.JwtSecret))
 			{
-				// Iremos criar este endpoint no PlanoAcaoController a seguir
 				protectedRes.PUT("/action-plans/:acaoId/status", planoCtrl.UpdateStatus)
+			}
+
+			// Grupo Protegido para Administração (auth + role admin)
+			adminRes := res.Group("/")
+			adminRes.Use(middleware.AuthMiddleware(authCtrl.JwtSecret))
+			adminRes.Use(middleware.RequireRole("admin_cogerh"))
+			{
+				adminRes.POST("/funceme-backfill", resCtrl.BackfillDados)
 			}
 
 			// Balanço e Usos (Públicas)
