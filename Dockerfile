@@ -1,6 +1,6 @@
 # Etapa 1: Build (Compilação)
 # Usamos uma imagem leve do Go baseada em Alpine Linux
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
