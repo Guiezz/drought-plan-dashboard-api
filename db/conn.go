@@ -9,11 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-func safeDSN(cfg *config.Config) string {
-	return fmt.Sprintf("host=%s user=%s dbname=%s port=%s sslmode=%s",
-		cfg.DBHost, cfg.DBUser, cfg.DBName, cfg.DBPort, cfg.DBSSLMode)
-}
-
 func ConnectDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := cfg.GetDSN()
 

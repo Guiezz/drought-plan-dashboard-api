@@ -30,7 +30,7 @@ func setupE2E(t *testing.T) (*gin.Engine, *gorm.DB, []byte) {
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
-	db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&model.Usuario{},
 		&model.HistoricoAcao{},
 		&model.Reservatorio{},
@@ -46,7 +46,9 @@ func setupE2E(t *testing.T) (*gin.Engine, *gorm.DB, []byte) {
 		&simulador.SimCAV{},
 		&simulador.SimEvaporacao{},
 		&simulador.SimVazao{},
-	)
+	); err != nil {
+		t.Fatalf("falha ao migrar banco de teste: %v", err)
+	}
 
 	reservatorioRepo := repository.NewReservatorioRepository(db)
 	planoAcaoRepo := repository.NewPlanoAcaoRepository(db)
@@ -104,7 +106,7 @@ func TestE2E_Ping(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp map[string]string
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.Equal(t, "pong!", resp["message"])
 }
 
@@ -117,7 +119,7 @@ func TestE2E_ReservatoriosListaVazia(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var res []model.Reservatorio
-	json.Unmarshal(w.Body.Bytes(), &res)
+	_ = json.Unmarshal(w.Body.Bytes(), &res)
 	assert.Empty(t, res)
 }
 
@@ -132,7 +134,7 @@ func TestE2E_ReservatoriosComDados(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var res []model.Reservatorio
-	json.Unmarshal(w.Body.Bytes(), &res)
+	_ = json.Unmarshal(w.Body.Bytes(), &res)
 	require.Len(t, res, 1)
 	assert.Equal(t, "Teste", res[0].Nome)
 }
@@ -151,7 +153,7 @@ func TestE2E_LoginSucesso(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NotEmpty(t, resp["token"])
 	assert.Equal(t, "Admin", resp["usuario"].(map[string]interface{})["nome"])
 }
@@ -196,7 +198,7 @@ func TestE2E_RotaProtegidaComToken(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 
 	var loginResp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &loginResp)
+	_ = json.Unmarshal(w.Body.Bytes(), &loginResp)
 	tokenStr := loginResp["token"].(string)
 
 	w = httptest.NewRecorder()
@@ -265,7 +267,7 @@ func TestE2E_SimulacaoAcudes(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp []map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	require.Len(t, resp, 1)
 	assert.Equal(t, float64(1), resp[0]["codigo"])
 }
@@ -282,7 +284,7 @@ func TestE2E_SimulacaoAnos(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var resp map[string]interface{}
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NotEmpty(t, resp["anos"])
 }
 

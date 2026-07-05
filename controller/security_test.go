@@ -6,11 +6,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/middleware"
 	"github.com/guiezz/dashboard-api/model"
@@ -27,20 +25,10 @@ func setupSecurityTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
-	db.AutoMigrate(&model.Usuario{}, &model.PlanoAcao{}, &model.HistoricoAcao{}, &model.Reservatorio{})
+	if err := db.AutoMigrate(&model.Usuario{}, &model.PlanoAcao{}, &model.HistoricoAcao{}, &model.Reservatorio{}); err != nil {
+		t.Fatalf("falha ao migrar banco de teste: %v", err)
+	}
 	return db
-}
-
-func generateToken(t *testing.T, secret []byte, userID uint, role string) string {
-	t.Helper()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"usuario_id": float64(userID),
-		"role":       role,
-		"exp":        time.Now().Add(1 * time.Hour).Unix(),
-	})
-	s, err := token.SignedString(secret)
-	require.NoError(t, err)
-	return s
 }
 
 func TestSecurity_ProtectedRoute(t *testing.T) {
@@ -91,7 +79,7 @@ func TestSecurity_ProtectedRoute(t *testing.T) {
 		require.Equal(t, http.StatusOK, w.Code)
 
 		var loginResp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &loginResp)
+		_ = json.Unmarshal(w.Body.Bytes(), &loginResp)
 		tokenStr := loginResp["token"].(string)
 
 		w = httptest.NewRecorder()
@@ -101,7 +89,7 @@ func TestSecurity_ProtectedRoute(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		var meResp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &meResp)
+		_ = json.Unmarshal(w.Body.Bytes(), &meResp)
 		assert.NotEmpty(t, meResp["usuario_id"])
 	})
 }
@@ -121,7 +109,7 @@ func TestSecurity_ErroNaoVazaDetalhes(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 		var resp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		msg := resp["error"].(string)
 		assert.NotContains(t, msg, "record not found")
 		assert.NotContains(t, msg, "nil pointer")
@@ -197,6 +185,6 @@ func TestSecurity_RotaPublicaFuncionaSemToken(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	var res []model.Reservatorio
-	json.Unmarshal(w.Body.Bytes(), &res)
+	_ = json.Unmarshal(w.Body.Bytes(), &res)
 	assert.Len(t, res, 1)
 }

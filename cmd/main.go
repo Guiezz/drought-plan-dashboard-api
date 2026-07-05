@@ -61,7 +61,9 @@ func main() {
 	}
 
 	if os.Getenv("APP_ENV") != "production" {
-		dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{})
+		if err := dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{}); err != nil {
+			log.Fatalf("Erro ao migrar schema: %v", err)
+		}
 	}
 
 	// 2. Repositórios

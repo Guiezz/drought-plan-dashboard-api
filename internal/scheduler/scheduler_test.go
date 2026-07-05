@@ -90,11 +90,11 @@ func TestScheduler_ContextCancelParaTicker(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	Start(ctx, 30*time.Millisecond, 10*time.Millisecond, 10*time.Millisecond, lister, updater)
+	Start(ctx, 10*time.Second, 10*time.Millisecond, 10*time.Millisecond, lister, updater)
 	time.Sleep(50 * time.Millisecond)
 
 	initialCalls := calls.Load()
-	assert.Greater(t, initialCalls, int32(0), "deveria ter executado ao menos uma vez")
+	assert.Equal(t, int32(1), initialCalls, "deveria ter executado exatamente uma vez")
 
 	cancel()
 	time.Sleep(80 * time.Millisecond)
