@@ -6,10 +6,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/guiezz/dashboard-api/controller"
+	"github.com/guiezz/dashboard-api/docs"
 	"github.com/guiezz/dashboard-api/middleware"
-
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func SetupRouter(
@@ -35,10 +33,31 @@ func SetupRouter(
 		MaxAge:           12 * time.Hour,
 	}))
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong!"})
+	})
+
+	r.GET("/openapi.json", func(c *gin.Context) {
+		c.Data(200, "application/json", []byte(docs.SwaggerInfo.ReadDoc()))
+	})
+
+	r.GET("/docs", func(c *gin.Context) {
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.String(200, `<!DOCTYPE html>
+<html>
+<head>
+  <title>API Dashboard - Documentação</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { margin: 0; padding: 0; }
+  </style>
+</head>
+<body>
+  <div id="api-reference" data-url="/openapi.json"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>`)
 	})
 
 	r.Static("/static", "./static")
