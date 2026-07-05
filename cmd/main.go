@@ -16,6 +16,7 @@ import (
 	"github.com/guiezz/dashboard-api/internal/calculator"
 	"github.com/guiezz/dashboard-api/internal/funceme"
 	"github.com/guiezz/dashboard-api/internal/scheduler"
+	"github.com/guiezz/dashboard-api/middleware"
 	"github.com/guiezz/dashboard-api/model"
 	"github.com/guiezz/dashboard-api/repository"
 	"github.com/guiezz/dashboard-api/router"
@@ -95,8 +96,11 @@ func main() {
 	// Criando a instância do AuthController e passando a conexão do banco + chave JWT
 	authController := controller.NewAuthController(dbConnection, []byte(cfg.JWTSecret))
 
-	// 6. Router
-	// Passando os controllers na mesma ordem definida na assinatura da função SetupRouter
+	// 6. Rate Limiters
+	loginLimiter := middleware.NewRateLimiter(5, 1*time.Minute)
+	simulacaoLimiter := middleware.NewRateLimiter(10, 1*time.Minute)
+
+	// 7. Router
 	server := router.SetupRouter(
 		reservatorioController,
 		planoAcaoController,
@@ -106,6 +110,8 @@ func main() {
 		simulacaoController,
 		authController,
 		cfg.FrontendURL,
+		loginLimiter,
+		simulacaoLimiter,
 	)
 
 	// 7. Scheduler automático da Funceme (executa a cada 24h)
@@ -113,7 +119,7 @@ func main() {
 	defer cancel()
 
 	if cfg.JWTSecret != "" {
-		scheduler.Start(ctx, 24*time.Hour,
+		scheduler.Start(ctx, 24*time.Hour, 10*time.Second, 2*time.Second,
 			reservatorioUseCase.ListReservoirIDs,
 			reservatorioUseCase.AtualizarDadosFunceme,
 		)

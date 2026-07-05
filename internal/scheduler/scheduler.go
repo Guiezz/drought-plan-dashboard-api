@@ -9,11 +9,11 @@ import (
 type ReservoirLister func() ([]uint, error)
 type ReservoirUpdater func(id uint) (int, error)
 
-func Start(ctx context.Context, interval time.Duration, lister ReservoirLister, updater ReservoirUpdater) {
+func Start(ctx context.Context, interval, initialDelay, perItemDelay time.Duration, lister ReservoirLister, updater ReservoirUpdater) {
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(initialDelay)
 
-		runUpdate(lister, updater)
+		runUpdate(lister, updater, perItemDelay)
 
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -21,7 +21,7 @@ func Start(ctx context.Context, interval time.Duration, lister ReservoirLister, 
 		for {
 			select {
 			case <-ticker.C:
-				runUpdate(lister, updater)
+				runUpdate(lister, updater, perItemDelay)
 			case <-ctx.Done():
 				log.Println("[Scheduler] Encerrando atualização automática da Funceme")
 				return
@@ -30,7 +30,7 @@ func Start(ctx context.Context, interval time.Duration, lister ReservoirLister, 
 	}()
 }
 
-func runUpdate(lister ReservoirLister, updater ReservoirUpdater) {
+func runUpdate(lister ReservoirLister, updater ReservoirUpdater, perItemDelay time.Duration) {
 	log.Println("[Scheduler] Iniciando atualização dos dados da Funceme...")
 
 	ids, err := lister()
@@ -46,7 +46,7 @@ func runUpdate(lister ReservoirLister, updater ReservoirUpdater) {
 		} else if novos > 0 {
 			log.Printf("[Scheduler] Reservatório %d: %d novos registros", id, novos)
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(perItemDelay)
 	}
 
 	log.Println("[Scheduler] Atualização concluída")

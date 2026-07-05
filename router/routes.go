@@ -12,11 +12,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-var (
-	loginLimiter    = middleware.NewRateLimiter(5, 1*time.Minute)
-	simulacaoLimiter = middleware.NewRateLimiter(10, 1*time.Minute)
-)
-
 func SetupRouter(
 	resCtrl *controller.ReservatorioController,
 	planoCtrl *controller.PlanoAcaoController,
@@ -26,6 +21,7 @@ func SetupRouter(
 	simCtrl *controller.SimulacaoController,
 	authCtrl *controller.AuthController,
 	frontendURL string,
+	loginLimiter, simulacaoLimiter *middleware.RateLimiter,
 ) *gin.Engine {
 	r := gin.Default()
 
