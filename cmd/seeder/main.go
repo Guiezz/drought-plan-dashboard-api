@@ -31,7 +31,7 @@ func main() {
 	} else {
 		fmt.Print("⚠️ Isso irá LIMPAR TODOS OS DADOS do banco. Deseja continuar? (s/N): ")
 		var resposta string
-		fmt.Scanln(&resposta)
+		_, _ = fmt.Scanln(&resposta)
 		if resposta == "s" || resposta == "S" {
 			limparBanco(database)
 		} else {
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	fmt.Println(">>> Verificando e criando schema do banco...")
-	database.AutoMigrate(
+	if err := database.AutoMigrate(
 		&model.Usuario{},
 		&model.HistoricoAcao{},
 		&model.Reservatorio{},
@@ -52,7 +52,9 @@ func main() {
 		&model.PlanoAcao{},
 		&model.VolumeMeta{},
 		&model.Responsavel{},
-	)
+	); err != nil {
+		log.Fatalf("Erro ao migrar schema: %v", err)
+	}
 	fmt.Println("✅ Schema do banco atualizado!")
 
 	criarUsuarioAdmin(database)

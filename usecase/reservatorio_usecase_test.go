@@ -91,15 +91,6 @@ func (m *mockSecaCalculator) CalcularDiasDesdeMudanca(estadoAtual string, histor
 	return args.Int(0)
 }
 
-type mockFuncemeService struct {
-	mock.Mock
-}
-
-func (m *mockFuncemeService) BuscarSeriesHistoricas(codigoFunceme, dataInicio string) ([]model.Monitoramento, error) {
-	args := m.Called(codigoFunceme, dataInicio)
-	return args.Get(0).([]model.Monitoramento), args.Error(1)
-}
-
 func TestObterResumoDashboard(t *testing.T) {
 	mockRepo := new(mockReservatorioRepo)
 	mockPlano := new(mockPlanoAcaoRepo)

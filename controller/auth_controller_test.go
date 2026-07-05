@@ -20,7 +20,9 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("falha ao conectar no banco de teste: %v", err)
 	}
-	db.AutoMigrate(&model.Usuario{})
+	if err := db.AutoMigrate(&model.Usuario{}); err != nil {
+		t.Fatalf("falha ao migrar banco de teste: %v", err)
+	}
 	return db
 }
 
@@ -54,7 +56,7 @@ func TestLogin(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		var resp map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resp)
+		_ = json.Unmarshal(w.Body.Bytes(), &resp)
 		assert.NotEmpty(t, resp["token"])
 		assert.NotNil(t, resp["usuario"])
 	})

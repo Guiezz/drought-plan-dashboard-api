@@ -15,7 +15,7 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("falha ao conectar no banco de teste: %v", err)
 	}
-	db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&model.Usuario{},
 		&model.HistoricoAcao{},
 		&model.Reservatorio{},
@@ -31,6 +31,8 @@ func setupTestDB(t *testing.T) *gorm.DB {
 		&simulador.SimCAV{},
 		&simulador.SimEvaporacao{},
 		&simulador.SimVazao{},
-	)
+	); err != nil {
+		t.Fatalf("falha ao migrar banco de teste: %v", err)
+	}
 	return db
 }
