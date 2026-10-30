@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -169,5 +170,40 @@ func TestListReservoirIDs(t *testing.T) {
 	ids, err := uc.ListReservoirIDs()
 	assert.NoError(t, err)
 	assert.Equal(t, []uint{1, 2}, ids)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestObterDetalhesReservatorio_FichaTecnica(t *testing.T) {
+	mockRepo := new(mockReservatorioRepo)
+	uc := NewReservatorioUseCase(mockRepo, new(mockPlanoAcaoRepo), new(mockSecaCalculator), nil)
+
+	area := 206.2
+	ano := 1924
+	construtor := "IFOCS (atual DNOCS)"
+	mockRepo.On("GetReservatorioByID", 1).Return(&model.Reservatorio{
+		ID:              1,
+		Nome:            "Acarape do Meio",
+		Capacidadehm3:   29.6,
+		CodigoFunceme:   "78",
+		AreaDrenagemKm2: &area,
+		AnoConstrucao:   &ano,
+		Construtor:      &construtor,
+		RioBarrado:      nil,
+	}, nil).Once()
+
+	det, err := uc.ObterDetalhesReservatorio(1)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 29.6, det.CapacidadeHm3)
+	assert.Equal(t, "78", det.CodigoFunceme)
+	assert.Equal(t, 206.2, *det.AreaDrenagemKm2)
+	assert.Equal(t, 1924, *det.AnoConstrucao)
+	assert.Equal(t, "IFOCS (atual DNOCS)", *det.Construtor)
+	assert.Nil(t, det.RioBarrado)
+
+	raw, err := json.Marshal(det)
+	assert.NoError(t, err)
+	assert.NotContains(t, string(raw), "rio_barrado")
+	assert.Contains(t, string(raw), `"area_drenagem_km2":206.2`)
 	mockRepo.AssertExpectations(t)
 }
