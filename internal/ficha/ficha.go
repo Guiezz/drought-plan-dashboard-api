@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,6 +19,12 @@ import (
 
 var colunas = []string{
 	"nome", "bacia", "area_drenagem_km2", "ano_construcao", "construtor", "rio_barrado", "municipios_atendidos",
+}
+
+// AbrirCSV abre o CSV confinado ao diretório dele (os.OpenInRoot): um link
+// simbólico ou caminho que leve para fora desse diretório é recusado.
+func AbrirCSV(caminho string) (*os.File, error) {
+	return os.OpenInRoot(filepath.Dir(caminho), filepath.Base(caminho))
 }
 
 // Registro é uma linha do CSV. Campos vazios viram nil.

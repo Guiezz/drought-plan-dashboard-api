@@ -81,7 +81,7 @@ func main() {
 
 // aplicarFichaTecnica grava a ficha técnica (se o CSV existir) depois que os reservatórios foram importados.
 func aplicarFichaTecnica(database *gorm.DB, caminho string) {
-	f, err := os.Open(caminho)
+	f, err := ficha.AbrirCSV(caminho)
 	if err != nil {
 		fmt.Printf("ℹ️  Ficha técnica não encontrada em %s (pulando)\n", caminho)
 		return

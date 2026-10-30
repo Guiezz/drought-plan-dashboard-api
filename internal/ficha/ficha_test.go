@@ -2,6 +2,7 @@ package ficha
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -158,4 +159,29 @@ func TestExecutar_GravaDeVerdade(t *testing.T) {
 	var a model.Reservatorio
 	require.NoError(t, db.Where("nome = ?", "A").First(&a).Error)
 	assert.Equal(t, 1924, *a.AnoConstrucao)
+}
+
+func TestAbrirCSV_AbreArquivoDoDiretorio(t *testing.T) {
+	dir := t.TempDir()
+	caminho := filepath.Join(dir, "ficha_tecnica.csv")
+	require.NoError(t, os.WriteFile(caminho, []byte(header), 0o600))
+
+	f, err := AbrirCSV(caminho)
+	require.NoError(t, err)
+	defer f.Close()
+	regs, err := Parse(f)
+	require.NoError(t, err)
+	assert.Empty(t, regs)
+}
+
+// Um link simbólico que aponta para fora do diretório do CSV é recusado.
+func TestAbrirCSV_RecusaLinkParaForaDoDiretorio(t *testing.T) {
+	fora := filepath.Join(t.TempDir(), "segredo.csv")
+	require.NoError(t, os.WriteFile(fora, []byte(header), 0o600))
+	dir := t.TempDir()
+	link := filepath.Join(dir, "ficha_tecnica.csv")
+	require.NoError(t, os.Symlink(fora, link))
+
+	_, err := AbrirCSV(link)
+	assert.Error(t, err)
 }

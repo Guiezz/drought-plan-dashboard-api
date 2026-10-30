@@ -21,7 +21,7 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "simula a importação numa transação desfeita no fim (não altera dados nem schema)")
 	flag.Parse()
 
-	f, err := os.Open(*arquivo)
+	f, err := ficha.AbrirCSV(*arquivo)
 	if err != nil {
 		log.Fatalf("Erro ao abrir %s: %v", *arquivo, err)
 	}
