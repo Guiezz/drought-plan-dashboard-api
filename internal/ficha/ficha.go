@@ -4,8 +4,10 @@ package ficha
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -36,11 +38,17 @@ func texto(s string) *string {
 	return &s
 }
 
-// Aceita "206,20", "5.401,60" e "364.03".
+// "7.700" sem vírgula é ambíguo (7,7 ou 7700?) e é recusado.
+var milharSemVirgula = regexp.MustCompile(`^\d{1,3}(\.\d{3})+$`)
+
+// Aceita "206,20", "5.401,60", "364.03" e "7700".
 func decimal(s string) (*float64, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, nil
+	}
+	if milharSemVirgula.MatchString(s) {
+		return nil, fmt.Errorf("valor ambíguo %q: use vírgula decimal (ex.: 7.700,00) ou sem separador", s)
 	}
 	if strings.Contains(s, ",") {
 		s = strings.ReplaceAll(s, ".", "")
@@ -149,6 +157,35 @@ func Aplicar(db *gorm.DB, regs []Registro) (atualizados int, desconhecidos []str
 		}
 		return nil
 	})
+	if err != nil {
+		return 0, nil, err
+	}
+	return atualizados, desconhecidos, nil
+}
+
+var errDryRun = errors.New("dry-run")
+
+// Executar cria as colunas da ficha (se faltarem) e grava os registros numa
+// única transação. Em dry-run tudo é desfeito no fim — inclusive as colunas,
+// já que o DDL é transacional no Postgres e no SQLite.
+func Executar(db *gorm.DB, regs []Registro, dryRun bool) (atualizados int, desconhecidos []string, err error) {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.AutoMigrate(&model.Reservatorio{}); err != nil {
+			return fmt.Errorf("ficha: migrar tabela reservatorio: %w", err)
+		}
+		var errAplicar error
+		atualizados, desconhecidos, errAplicar = Aplicar(tx, regs)
+		if errAplicar != nil {
+			return errAplicar
+		}
+		if dryRun {
+			return errDryRun
+		}
+		return nil
+	})
+	if errors.Is(err, errDryRun) {
+		return atualizados, desconhecidos, nil
+	}
 	if err != nil {
 		return 0, nil, err
 	}

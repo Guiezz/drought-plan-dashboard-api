@@ -128,3 +128,34 @@ func TestCSVVersionado(t *testing.T) {
 		}
 	}
 }
+
+func TestParse_MilharSemVirgulaEhAmbiguo(t *testing.T) {
+	_, err := Parse(strings.NewReader(header + "Fogareiro;;7.700;;;;\n"))
+	assert.ErrorContains(t, err, "linha 2")
+}
+
+// Dry-run não pode deixar rastro: nem colunas novas nem dados.
+func TestExecutar_DryRunNaoAlteraSchemaNemDados(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.Exec("CREATE TABLE reservatorio (id integer primary key, nome text)").Error)
+	require.NoError(t, db.Exec("INSERT INTO reservatorio (id, nome) VALUES (1, 'A')").Error)
+
+	atualizados, _, err := Executar(db, []Registro{{Nome: "A", AnoConstrucao: ptr(1924)}}, true)
+	require.NoError(t, err)
+	assert.Equal(t, 1, atualizados)
+	assert.False(t, db.Migrator().HasColumn(&model.Reservatorio{}, "ano_construcao"))
+}
+
+func TestExecutar_GravaDeVerdade(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	require.NoError(t, db.Exec("CREATE TABLE reservatorio (id integer primary key, nome text)").Error)
+	require.NoError(t, db.Exec("INSERT INTO reservatorio (id, nome) VALUES (1, 'A')").Error)
+
+	_, _, err = Executar(db, []Registro{{Nome: "A", AnoConstrucao: ptr(1924)}}, false)
+	require.NoError(t, err)
+	var a model.Reservatorio
+	require.NoError(t, db.Where("nome = ?", "A").First(&a).Error)
+	assert.Equal(t, 1924, *a.AnoConstrucao)
+}

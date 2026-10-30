@@ -5,7 +5,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -15,15 +14,11 @@ import (
 	"github.com/guiezz/dashboard-api/config"
 	"github.com/guiezz/dashboard-api/db"
 	"github.com/guiezz/dashboard-api/internal/ficha"
-	"github.com/guiezz/dashboard-api/model"
-	"gorm.io/gorm"
 )
-
-var errDryRun = errors.New("dry-run: alterações desfeitas")
 
 func main() {
 	arquivo := flag.String("arquivo", "dados_importacao/ficha_tecnica.csv", "caminho do CSV da ficha técnica")
-	dryRun := flag.Bool("dry-run", false, "mostra o resultado sem gravar no banco")
+	dryRun := flag.Bool("dry-run", false, "simula a importação numa transação desfeita no fim (não altera dados nem schema)")
 	flag.Parse()
 
 	f, err := os.Open(*arquivo)
@@ -41,24 +36,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Erro ao conectar ao banco: %v", err)
 	}
-	// Só adiciona as colunas novas; não altera dados existentes.
-	if err := database.AutoMigrate(&model.Reservatorio{}); err != nil {
-		log.Fatalf("Erro ao migrar a tabela reservatorio: %v", err)
-	}
 
-	var atualizados int
-	var desconhecidos []string
-	err = database.Transaction(func(tx *gorm.DB) error {
-		atualizados, desconhecidos, err = ficha.Aplicar(tx, regs)
-		if err != nil {
-			return err
-		}
-		if *dryRun {
-			return errDryRun
-		}
-		return nil
-	})
-	if err != nil && !errors.Is(err, errDryRun) {
+	// Cria as colunas da ficha (se faltarem) e grava numa só transação;
+	// em -dry-run tudo é desfeito, inclusive as colunas.
+	atualizados, desconhecidos, err := ficha.Executar(database, regs, *dryRun)
+	if err != nil {
 		log.Fatalf("Erro ao gravar a ficha: %v", err)
 	}
 
