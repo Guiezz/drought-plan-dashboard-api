@@ -179,6 +179,15 @@ func (uc *ReservatorioUseCase) ObterDetalhesReservatorio(id int) (*model.Reserva
 		Long:          res.Long,
 		UrlImagem:     urlImagem,
 		UrlImagemUsos: urlUsos,
+		CapacidadeHm3: res.Capacidadehm3,
+		CodigoFunceme: res.CodigoFunceme,
+
+		Bacia:               res.Bacia,
+		AreaDrenagemKm2:     res.AreaDrenagemKm2,
+		AnoConstrucao:       res.AnoConstrucao,
+		Construtor:          res.Construtor,
+		RioBarrado:          res.RioBarrado,
+		MunicipiosAtendidos: res.MunicipiosAtendidos,
 	}, nil
 }
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/guiezz/dashboard-api/config"
 	"github.com/guiezz/dashboard-api/db"
+	"github.com/guiezz/dashboard-api/internal/ficha"
 	"github.com/guiezz/dashboard-api/model"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -73,6 +74,33 @@ func main() {
 			folderPath := filepath.Join(rootPath, entry.Name())
 			processarReservatorio(database, folderPath)
 		}
+	}
+
+	aplicarFichaTecnica(database, filepath.Join(rootPath, "ficha_tecnica.csv"))
+}
+
+// aplicarFichaTecnica grava a ficha técnica (se o CSV existir) depois que os reservatórios foram importados.
+func aplicarFichaTecnica(database *gorm.DB, caminho string) {
+	f, err := ficha.AbrirCSV(caminho)
+	if err != nil {
+		fmt.Printf("ℹ️  Ficha técnica não encontrada em %s (pulando)\n", caminho)
+		return
+	}
+	defer f.Close()
+
+	regs, err := ficha.Parse(f)
+	if err != nil {
+		log.Printf("   [AVISO] %v", err)
+		return
+	}
+	atualizados, desconhecidos, err := ficha.Aplicar(database, regs)
+	if err != nil {
+		log.Printf("   [AVISO] Erro ao gravar a ficha técnica: %v", err)
+		return
+	}
+	fmt.Printf("✅ Ficha técnica: %d reservatório(s) atualizado(s)\n", atualizados)
+	if len(desconhecidos) > 0 {
+		log.Printf("   [AVISO] Nomes da ficha sem reservatório: %s", strings.Join(desconhecidos, ", "))
 	}
 }
 
