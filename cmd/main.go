@@ -61,7 +61,7 @@ func main() {
 	}
 
 	if os.Getenv("APP_ENV") != "production" {
-		if err := dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{}); err != nil {
+		if err := dbConnection.AutoMigrate(&model.Usuario{}, &model.HistoricoAcao{}, &model.Reservatorio{}); err != nil {
 			log.Fatalf("Erro ao migrar schema: %v", err)
 		}
 	}

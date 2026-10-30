@@ -628,10 +628,23 @@ const docTemplate = `{
         "model.Reservatorio": {
             "type": "object",
             "properties": {
+                "ano_construcao": {
+                    "type": "integer"
+                },
+                "area_drenagem_km2": {
+                    "type": "number"
+                },
+                "bacia": {
+                    "description": "Ficha técnica (opcional; carregada de dados_importacao/ficha_tecnica.csv)",
+                    "type": "string"
+                },
                 "capacidade_hm3": {
                     "type": "number"
                 },
                 "codigo_funceme": {
+                    "type": "string"
+                },
+                "construtor": {
                     "type": "string"
                 },
                 "descricao": {
@@ -647,6 +660,9 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "municipio": {
+                    "type": "string"
+                },
+                "municipios_atendidos": {
                     "type": "string"
                 },
                 "nome": {
@@ -657,12 +673,33 @@ const docTemplate = `{
                 },
                 "nome_imagem_usos": {
                     "type": "string"
+                },
+                "rio_barrado": {
+                    "type": "string"
                 }
             }
         },
         "model.ReservatorioDetalhes": {
             "type": "object",
             "properties": {
+                "ano_construcao": {
+                    "type": "integer"
+                },
+                "area_drenagem_km2": {
+                    "type": "number"
+                },
+                "bacia": {
+                    "type": "string"
+                },
+                "capacidade_hm3": {
+                    "type": "number"
+                },
+                "codigo_funceme": {
+                    "type": "string"
+                },
+                "construtor": {
+                    "type": "string"
+                },
                 "descricao": {
                     "type": "string"
                 },
@@ -678,7 +715,13 @@ const docTemplate = `{
                 "municipio": {
                     "type": "string"
                 },
+                "municipios_atendidos": {
+                    "type": "string"
+                },
                 "nome": {
+                    "type": "string"
+                },
+                "rio_barrado": {
                     "type": "string"
                 },
                 "url_imagem": {
